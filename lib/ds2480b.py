@@ -24,10 +24,10 @@ class DS2480b(object):
     __ACCELERATORON = b'\xB1'
     __ACCELERATOROFF = b'\xA1'
     #declare konstanten DS1820
-    __CONVERTT = '44'
-    __READ = 'BE'
-    __SKIPROM = 'CC'
-    __MATCHROM = '55'
+    __CONVERTT = b'\x44'
+    __READ = b'\xBE'
+    __SKIPROM = b'\xCC'
+    __MATCHROM = b'\x55'
     #delacre variabeln fuer die Klasse
     _iscmdmode = 0
     #search state
@@ -48,30 +48,29 @@ class DS2480b(object):
         self.romstorage = ROMSTORAGE
         self.interface = INTERFACE
         self.debug = 1
+        self.port = None
+        self.baud = None
 
 #******************RS232 Routinen***********************************************
     def interfacereset(self):
         """reset interface"""
         print("Err UART --> Reset Interface")
-        self.interface.close()
-        self.interface.open()
+        self.interface.deinit()
+        self.interface.init(self.baud)
         self.portwrite(self.__RESET)
 
     def initrs232(self, port=1, baud=9600):
         """Init RS232"""
-        self.interface = UART(port, baud)
+        self.port = port
+        self.baud = baud
+
+        self.interface = UART(self.port, self.baud)
         self.interface.init(baud)
-        #if self.interface.open:
-        #    print('open:'+value)
-        #    print(self.interface)
-        #else:str(
-        #    print("Err RS232 Init")
 
     def closers232(self):
         """port schliessen"""
-        name = self.interface.name
         self.interface.deinit()
-        print(name + " close")
+        print("close serial port {}".format(self.port))
 
     def getchrrs232(self):
         """Rx char"""
@@ -107,14 +106,12 @@ class DS2480b(object):
             self._iscmdmode = False
             self.portwrite(self.__DATAMODE)
 
-    def portwrite(self, value=0):
+    def portwrite(self, value=b'\x00'):
         """write data"""
         if self.debug == 1:
-            # print("debug value write:" + hex(value))
-            print("debug value raw:" + str(value))
-            print("debug value bytes:" + str(unhexlify(value)))
+            print("debug value bytes: {}".format(value))
 
-        self.interface.write(unhexlify(value))
+        self.interface.write(value)
         if self._iscmdmode == 1:
             return self.getchrrs232()
 
@@ -123,28 +120,28 @@ class DS2480b(object):
         getchr = 0
         self.commandmode()
         #if self.debug == 1:
-        #    print "writebit: " + bin(value)
+        #    print("writebit: " + bin(value))
         if value == 1:
-            getchr = self.portwrite(0x91) #write a single "on" bit to onewire
+            getchr = self.portwrite(b'\x91') #write a single "on" bit to onewire
         else:
-            getchr = self.portwrite(0x81) #write a single "off" bit to onewire
+            getchr = self.portwrite(b'\x81') #write a single "off" bit to onewire
         if waitforreply == 1:
             return getchr & 1
 
     def readbit(self):
         """Read a bit - short hand for writing a 1 and seeing what we get back."""
-        return self.writebit(1)
+        return self.writebit(b'\x01')
 
-    def writemode(self, value=0):
+    def writemode(self, value=b'\x00'):
         """Tx UART value without return from DS2480b"""
         if self.debug == 1:
-            print("debug value write:" + hex(value))
-        self.interface.write([value])
+            print("debug value write: {}".format(value))
+        self.interface.write(value)
 
-    def writecommand(self, value=0):
+    def writecommand(self, value=b'\x00'):
         """Tx UART value with return from DS2480b"""
         self.commandmode()
-        self.interface.write([value])
+        self.interface.write(value)
         result = self.getchrrs232()
         return result
 
