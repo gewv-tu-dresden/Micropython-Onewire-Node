@@ -1,8 +1,8 @@
-"""db.py"""
+"""ds2480b.py"""
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 __license__ = "IEEH 2018"
-__revision__ = " 05_2018 "
+__revision__ = " 07_2018 "
 #import serial
 from machine import UART
 from copy import deepcopy
@@ -10,7 +10,8 @@ from binascii import unhexlify
 from time import sleep
 
 class DS2480b(object):
-    """one wire master DS2480b Abfrage"""
+    """one wire master DS2480b Abfrage
+    getestet mit Firmware LoPy_868-1.9.2.b2"""
     #lokale Konstanten
     #declare konstanten DS2480b
     __ACK = 0xCD
@@ -62,11 +63,6 @@ class DS2480b(object):
         """Init RS232"""
         self.interface = UART(port, 9600)
         self.interface.init(baud, bits=8, parity=None, stop=1)
-        #if self.interface.open:
-        #    print ('open:'+value)
-        #    print (self.interface)
-        #else:
-        #    print ("Err RS232 Init")
     def closers232(self):
         """port schliessen"""
         self.interface.deinit()
@@ -81,10 +77,9 @@ class DS2480b(object):
             return ord(result)
         else:
             return 0
-    def flushrs232(self, value=100):
+    def flushrs232(self):
         """clear input buffer"""
-        for i in range(0, value):
-            self.getchrrs232()
+        self.interface.readall()
 
 #*********************DS2480B Routinen******************************************
     def commandmode(self):
@@ -104,7 +99,8 @@ class DS2480b(object):
         #    print "debug value write:" + hex(value)
         self.interface.write(bytearray([value]))
         if self._iscmdmode == 1:
-            sleep(0.001)
+            #return chr if cmd mode
+            sleep(0.010)
             return self.getchrrs232()
     def writebit(self, value=0, waitforreply=1):
         """Write a bit - actually returns the bit read back in case you care."""
@@ -308,7 +304,7 @@ class DS2480b(object):
             self.portwrite(self.__PULSETERMINATE)
             self.datamode()
             self.portwrite(self.__CONVERTT)
-            result = self.getchrrs232()
+            self.getchrrs232()
             self.commandmode()
             self.portwrite(self.__PULLUPDISARM)
             self.portwrite(self.__PULSETERMINATE)
@@ -327,22 +323,21 @@ class DS2480b(object):
             self.getchrrs232()
             for i in range(0, 8):
                 self.portwrite(self.romstorage[adress][i])
+                #print (hex(self.romstorage[adress][i])+" ", end="")
                 if self.debug == 1:
                     print (hex(self.romstorage[adress][i]), end='')
             self.portwrite(self.__READ)
-            sleep(0.01)
-            self.flushrs232(10)
-            dummy = [0] * 8
-            for i in range(0, 9):
+            sleep(0.005)
+            self.flushrs232()
+            for i in range(9):
                 self.portwrite(0xff)
                 scratchpad[i] = self.getchrrs232()
                 #print (hex(scratchpad[i])+" ", end="")
-            #self.commandmode()
-            sleep(0.05)
-            self.flushrs232(10)
+            self.commandmode()
             self.reset()
             if self.crc8(scratchpad) != 0:
                 self.temperature = 9999.999
+                print ("Err CRC")
                 return self.temperature
             #calculate temperatur
             #ds1820
