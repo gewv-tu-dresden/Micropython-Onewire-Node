@@ -14,6 +14,7 @@ class DS2480b(object):
     getestet mit Firmware LoPy4-1.18.0"""
     #lokale Konstanten
     #declare konstanten DS2480b
+    #Test
     __ACK = 0xCD
     __RESET = 0xC1
     __PULLUP = 0x3B
@@ -40,7 +41,7 @@ class DS2480b(object):
     _lastfamilydiscrepancy = 0
     newromno = [0]*8
 
-#variabeln der Klasse --> öffentlich
+#variabeln der Klasse --> oeffentlich
     def __init__(self, TEMPERATURE=0, DS1920NO=0, DS1920FIRST=0, DS19B20NO=0,
     DS19B20FIRST=0, ROMSTORAGE=[None]*100, INTERFACE="", DEBUG=0):
         """init der methoden variabeln"""
