@@ -4,8 +4,8 @@ from machine import Pin
 
 #'config IO'
 myled = Pin('P2', mode=Pin.OUT)
-myswitch = Pin('P8', mode=Pin.IN, pull=Pin.PULL_UP)
-
+switch1 = Pin('P8', mode=Pin.IN, pull=Pin.PULL_UP)
+switch2 = Pin('P23', mode=Pin.IN, pull=Pin.PULL_UP)
 myled.value(1)
 
 def printid(array):
@@ -30,8 +30,8 @@ riegel = 1
 while (1):
     myled.toggle()
     sleep(0.2)
-    if myswitch()==0 and riegel ==1:
-        print ('Taster')
+    if switch1()==0 and riegel ==1:
+        print ('switch1')
         riegel = 0
         if go == 1:
             print('Abfrage AUS')
@@ -39,7 +39,7 @@ while (1):
         else:
             print('Abfrage EIN')
             go = 1
-    if myswitch()==1 and riegel ==0:
+    if switch1()==1 and riegel ==0:
         riegel = 1
     if go == 1:
         i+=1
@@ -50,4 +50,7 @@ while (1):
             print(VAR.romstorage[j], end="")
             print(VAR.acquiretemp(j), end="")
             print("'C'")
+    if switch2()==0:
+        print ("switch2")
+        break
 VAR.closers232()
