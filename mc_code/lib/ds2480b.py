@@ -11,7 +11,7 @@ from time import sleep
 
 class DS2480b(object):
     """one wire master DS2480b Abfrage
-    getestet mit Firmware LoPy_868-1.9.2.b2"""
+    getestet mit Firmware LoPy4-1.18.0"""
     #lokale Konstanten
     #declare konstanten DS2480b
     __ACK = 0xCD
@@ -331,6 +331,7 @@ class DS2480b(object):
             self.flushrs232()
             for i in range(9):
                 self.portwrite(0xff)
+                sleep(0.005)
                 scratchpad[i] = self.getchrrs232()
                 #print (hex(scratchpad[i])+" ", end="")
             self.commandmode()
