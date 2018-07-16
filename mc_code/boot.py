@@ -5,6 +5,9 @@ import time
 import ubinascii as binascii
 import pycom
 from machine import WDT
+from network import LoRa
+import socket
+
 
 ###  Initialize ###
 
