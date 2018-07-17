@@ -2,6 +2,7 @@ from time import sleep
 from ds2480b import *
 from machine import Pin
 from cayennelpp import CayenneLPP
+import socket
 
 #'config IO'
 myled = Pin('P2', mode=Pin.OUT)
@@ -25,12 +26,18 @@ VAR.debug = 1
 clientno = VAR.checkdevices()
 VAR.debug = 0
 
+# create a LoRa socket
+s = socket.socket(socket.AF_LORA, socket.SOCK_RAW)
+s.setsockopt(socket.SOL_LORA, socket.SO_DR, 0)
+s.setblocking(True)
+
 print("initialize cayennelpp")
 lpp = CayenneLPP(size=64, sock=s)
 
 go = 1
 riegel = 1
 turns = 0
+i = 0
 
 while (1):
     myled.toggle()
