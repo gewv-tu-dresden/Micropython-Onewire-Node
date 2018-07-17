@@ -1,4 +1,4 @@
-#from time import sleep
+from time import sleep
 from ds2480b import *
 from machine import Pin
 from cayennelpp import CayenneLPP
@@ -8,9 +8,6 @@ myled = Pin('P2', mode=Pin.OUT)
 switch1 = Pin('P8', mode=Pin.IN, pull=Pin.PULL_UP)
 switch2 = Pin('P23', mode=Pin.IN, pull=Pin.PULL_UP)
 myled.value(1)
-
-# Cayenne LowPowerPayload
-c = CayenneLPP()
 
 def printid(array):
     "print sensor id in hex"
@@ -27,6 +24,9 @@ VAR.getallid()
 VAR.debug = 1
 clientno = VAR.checkdevices()
 VAR.debug = 0
+
+print("initialize cayennelpp")
+lpp = CayenneLPP(size=64, sock=s)
 
 go = 1
 riegel = 1
@@ -56,14 +56,17 @@ while (1):
         i+=1
         VAR.converttemp()
         print("Abfrage " + str(i) + ": ")
-        sleep(0.8)
+        sleep(1.8)
         for j in range(0, clientno-1):
             rom_storage = VAR.romstorage[j]
             acq_temp = VAR.acquiretemp(j)
 
             # only every 30 reads a package should send
             if sendThisTurn:
-                c.addTemperature(j, acq_temp)
+                if not lpp.is_within_size_limit(2):
+                    print("Next sensor overflow package size.")
+                else:
+                    lpp.add_temperature(acq_temp, j)
 
             print("{} {} 'C'".format(rom_storage, acq_temp))
 
@@ -73,8 +76,7 @@ while (1):
 
     if sendThisTurn:
         print("Send temps to app server.")
-        s.setblocking(True)
-        s.send(c.getBuffer())
-        s.setblocking(False)
+        print("Payloadsize: {}".format(lpp.get_size()))
+        lpp.send(reset_payload=False)
 
 VAR.closers232()

@@ -56,4 +56,5 @@ else:
 # create a LoRa socket
 s = socket.socket(socket.AF_LORA, socket.SOCK_RAW)
 s.setsockopt(socket.SOL_LORA, socket.SO_DR, 5)
+s.setblocking(True)
 ######################
