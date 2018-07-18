@@ -2,7 +2,6 @@ from time import sleep
 from ds2480b import *
 from machine import Pin
 from cayennelpp import CayenneLPP
-import socket
 
 #'config IO'
 myled = Pin('P2', mode=Pin.OUT)
@@ -25,11 +24,6 @@ VAR.getallid()
 VAR.debug = 1
 clientno = VAR.checkdevices()
 VAR.debug = 0
-
-# create a LoRa socket
-s = socket.socket(socket.AF_LORA, socket.SOCK_RAW)
-s.setsockopt(socket.SOL_LORA, socket.SO_DR, 0)
-s.setblocking(True)
 
 print("initialize cayennelpp")
 lpp = CayenneLPP(size=64, sock=s)
@@ -84,6 +78,6 @@ while (1):
     if sendThisTurn:
         print("Send temps to app server.")
         print("Payloadsize: {}".format(lpp.get_size()))
-        lpp.send(reset_payload=False)
+        lpp.send(reset_payload=True)
 
 VAR.closers232()
