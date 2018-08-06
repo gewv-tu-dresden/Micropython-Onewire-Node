@@ -54,20 +54,24 @@ class DS2480b(object):
         self.interface = INTERFACE
         self.debug = DEBUG
 #******************RS232 Routinen***********************************************
+
     def interfacereset(self):
         """reset interface"""
         print ("Err OneWireBus --> Reset Interface")
         self.interface.deinit()
         self.interface.init()
         self.portwrite(self.__RESET)
+
     def initrs232(self, port='1', baud=9600):
         """Init RS232"""
         self.interface = UART(port, 9600)
         self.interface.init(baud, bits=8, parity=None, stop=1)
+
     def closers232(self):
         """port schliessen"""
         self.interface.deinit()
         print ("UART close")
+
     def getchrrs232(self):
         """Rx char"""
         result = self.interface.read(1)
@@ -78,6 +82,7 @@ class DS2480b(object):
             return ord(result)
         else:
             return 0
+
     def flushrs232(self):
         """clear input buffer"""
         self.interface.readall()

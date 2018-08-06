@@ -7,6 +7,9 @@ from machine import WDT
 from network import LoRa
 import socket
 
+### Const ###
+RED = 0x220000
+YELLOW = 0x222200
 
 ###  Initialize ###
 
@@ -23,7 +26,7 @@ lora = LoRa(mode=LoRa.LORAWAN, region=LoRa.EU868)
 ####################
 
 pycom.heartbeat(False)
-pycom.rgbled(0x220000) # red
+pycom.rgbled(RED) # red
 
 ### Configure Lora ###
 if machine.reset_cause() == machine.WDT_RESET:
@@ -52,6 +55,8 @@ else:
         print('Not yet joined after ' + str(i)+"s ... ")
 
     print('Joined.')
+    pycom.rgbled(YELLOW) # red
+
 
 # create a LoRa socket
 s = socket.socket(socket.AF_LORA, socket.SOCK_RAW)
