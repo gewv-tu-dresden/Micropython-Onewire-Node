@@ -4,6 +4,7 @@ from machine import Pin
 from cayennelpp import CayenneLPP
 import pycom
 
+VAR = None
 MEASURE = True
 DEBUG = False
 MEASURING_COLOR = 0x007f00
@@ -13,10 +14,9 @@ TOGGLE_DEBUG_COLOR = 0x007f7f
 RGBCOLOR = 0x007f00
 
 # config IO
-# myled = Pin('P2', mode=Pin.OUT)
+# myled = Pin('P2', mode=Pin.OUT) Remove this, becouse inbuild led is on P2 too
 lock_pin = Pin('P8', mode=Pin.IN, pull=Pin.PULL_UP)
 debug_pin = Pin('P23', mode=Pin.IN, pull=Pin.PULL_UP)
-# myled.value(1)
 
 # helper functions
 def set_rgb_color(color):
@@ -40,7 +40,6 @@ def log(message):
 # register callback for pins
 def toggle_measuring(arg):
     global MEASURE
-    print(TOGGLE_MEASURING_COLOR)
     pycom.rgbled(TOGGLE_MEASURING_COLOR)
     MEASURE = not MEASURE
     if MEASURE:
@@ -54,22 +53,27 @@ lock_pin.callback(Pin.IRQ_RISING, toggle_measuring)
 
 def toggle_debug(arg):
     global DEBUG
+    global VAR
+
     pycom.rgbled(TOGGLE_DEBUG_COLOR)
     DEBUG = not DEBUG
+    if VAR is not None:
+        VAR.debug = DEBUG
+
     sleep(0.5)
     set_rgb_color(RGBCOLOR)
 
 debug_pin.callback(Pin.IRQ_RISING, toggle_debug)
 
 log('*******************Testprogramm DS2480B************************')
-VAR = DS2480b()
-VAR.initrs232(1)
+VAR = DS2480b(debug=DEBUG)
+VAR.set232parameter(port=1)
+VAR.initrs232()
 
 log("search...")
 VAR.getallid()
-VAR.debug = 1
 clientno = VAR.checkdevices()
-VAR.debug = 0
+# VAR.debug = 0
 
 log("initialize cayennelpp")
 lpp = CayenneLPP(size=64, sock=s)
@@ -80,11 +84,9 @@ turns = 0
 i = 0
 
 while True:
-    print(RGBCOLOR)
     pycom.rgbled(RGBCOLOR)
 
     if MEASURE:
-        # myled(True)
 
         i+=1
         VAR.converttemp()
@@ -104,8 +106,6 @@ while True:
         print("Send temps to app server.")
         print("Payloadsize: {}".format(lpp.get_size()))
         lpp.send(reset_payload=True)
-
-        # myled(False)
 
     sleep(10)
 
