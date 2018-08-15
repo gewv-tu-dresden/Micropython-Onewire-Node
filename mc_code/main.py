@@ -1,7 +1,8 @@
 from time import sleep
-from ds2480b import *
+from ds2480b import DS2480b, CRCError, NoTempError
 from machine import Pin
 from cayennelpp import CayenneLPP
+import sys
 import pycom
 
 VAR = None
@@ -12,6 +13,14 @@ NO_MEASURING_COLOR = 0x7f0000
 TOGGLE_MEASURING_COLOR = 0x7f7f00
 TOGGLE_DEBUG_COLOR = 0x007f7f
 RGBCOLOR = 0x007f00
+RGBOFF = 0x050505
+
+# error codes
+NO_TEMPRATUR_MEASURED = 0
+UART_ERROR = 1
+CRC_ERROR = 2
+UNKNOWN_ERROR = 3
+
 
 # config IO
 # myled = Pin('P2', mode=Pin.OUT) Remove this, becouse inbuild led is on P2 too
@@ -61,12 +70,12 @@ def toggle_debug(arg):
         VAR.debug = DEBUG
 
     sleep(0.5)
-    set_rgb_color(RGBCOLOR)
+    pycom.rgbled(RGBCOLOR)
 
 debug_pin.callback(Pin.IRQ_RISING, toggle_debug)
 
 log('*******************Testprogramm DS2480B************************')
-VAR = DS2480b(debug=DEBUG)
+VAR = DS2480b(debug=DEBUG, temperature=-300)
 VAR.set232parameter(port=1)
 VAR.initrs232()
 
@@ -76,7 +85,7 @@ clientno = VAR.checkdevices()
 # VAR.debug = 0
 
 log("initialize cayennelpp")
-lpp = CayenneLPP(size=64, sock=s)
+lpp = CayenneLPP(size=51, sock=s)
 
 go = True
 riegel = True
@@ -93,20 +102,37 @@ while True:
         print("Abfrage " + str(i) + ": ")
         sleep(1.8)
         for j in range(0, clientno-1):
-            rom_storage = VAR.romstorage[j]
-            acq_temp = VAR.acquiretemp(j)
+            try:
+                rom_storage = VAR.romstorage[j]
+                acq_temp = VAR.acquiretemp(j)
 
-            if not lpp.is_within_size_limit(2):
-                print("Next sensor overflow package size.")
-            else:
-                lpp.add_temperature(acq_temp, j)
+                if not lpp.is_within_size_limit(2):
+                    print("Next sensor overflow package size.")
+                else:
+                    if acq_temp >= -55.0 and acq_temp <= 125.0:
+                        lpp.add_temperature(acq_temp, j)
 
-            print("{} {} 'C'".format(rom_storage, acq_temp))
+                debug("{} {} 'C'".format(rom_storage, acq_temp))
+
+            # error codes added to an second channel
+            except CRCError:
+                lpp.add_digital_input(CRC_ERROR, j+clientno)
+            except NoTempError:
+                lpp.add_digital_input(NO_TEMPRATUR_MEASURED, j+clientno)
+
+            except Exception as e:
+                log('--- Unknown Exception ---')
+                sys.print_exception(e)
+                log('----------------------------')
+
+                lpp.add_digital_input(UNKNOWN_ERROR, j+clientno)
+
 
         print("Send temps to app server.")
         print("Payloadsize: {}".format(lpp.get_size()))
         lpp.send(reset_payload=True)
 
+    pycom.rgbled(RGBOFF)
     sleep(10)
 
 VAR.closers232()

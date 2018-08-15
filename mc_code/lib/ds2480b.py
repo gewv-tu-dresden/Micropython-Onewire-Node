@@ -9,7 +9,7 @@ from copy import deepcopy
 from binascii import unhexlify
 from time import sleep
 
-class DS2480b(object):
+class DS2480b():
     """one wire master DS2480b Abfrage
     getestet mit Firmware LoPy4-1.18.0"""
     #lokale Konstanten
@@ -131,20 +131,24 @@ class DS2480b(object):
             getchr = self.portwrite(0x81) #write a single "off" bit to onewire
         if waitforreply == 1:
             return getchr & 1
+
     def readbit(self):
         """Read a bit - short hand for writing a 1 and seeing what we get back."""
         return self.writebit(1)
+
     def writemode(self, value=0):
         """Tx UART value without return from DS2480b"""
         if self.debug:
             print ("debug value write:" + hex(value))
         self.interface.write([value])
+
     def writecommand(self, value=0):
         """Tx UART value with return from DS2480b"""
         self.commandmode()
         self.interface.write([value])
         result = self.getchrrs232()
         return result
+
     def reset(self):
         """reset one wire bus"""
         self.commandmode()
@@ -153,10 +157,11 @@ class DS2480b(object):
             print("Reset initialize. Answer from device: {}".format(char))
 
         if char == self.__ACK:
-            return 1
+            return True
         else:
             self.interfacereset()
-            return 0
+            return False
+
     def resetsearch(self, clearrom=0):
         """reset the search state"""
         self._lastdiscrepancy = 0
@@ -196,7 +201,7 @@ class DS2480b(object):
             print ("search allgorithm")
         #if the last call was not the last one
         if self._lastdeviceflag == 0:
-            if self.reset() == 0:
+            if not self.reset():
                 self.resetsearch()
                 return False
             self.datamode()
@@ -316,7 +321,7 @@ class DS2480b(object):
         result = 0
         self.commandmode()
         self.portwrite(self.__PULLUP)
-        if self.reset() == 1:
+        if self.reset():
             self.datamode()
             self.portwrite(self.__SKIPROM)
             self.commandmode()
@@ -338,45 +343,48 @@ class DS2480b(object):
         if self.debug:
             print ("gettemp")
         self.commandmode()
-        if self.reset() == 1:
-            self.datamode()
-            self.portwrite(self.__MATCHROM)
-            self.getchrrs232()
-            for i in range(0, 8):
-                self.portwrite(self.romstorage[adress][i])
-                #print (hex(self.romstorage[adress][i])+" ", end="")
-                if self.debug:
-                    print (hex(self.romstorage[adress][i]), end='')
-            self.portwrite(self.__READ)
-            sleep(0.005)
-            self.flushrs232()
-            for i in range(9):
-                self.portwrite(0xff)
-                sleep(0.005)
-                scratchpad[i] = self.getchrrs232()
-                #print (hex(scratchpad[i])+" ", end="")
-            self.commandmode()
-            self.reset()
-            if self.crc8(scratchpad) != 0:
-                self.temperature = 9999.999
-                print ("Err CRC")
-                return self.temperature
-            #calculate temperatur
-            #ds1820
-            if self.romstorage[adress][0] == 0x10:
-                integer = 0
-                for i in range(1, -1, -1):
-                    integer = integer * 256 + scratchpad[i]
-                integer = integer / 2
-                self.temperature = ((scratchpad[7] - scratchpad[6]) / scratchpad[7]) + integer - 0.25
-            #ds18b20
-            if self.romstorage[adress][0] == 0x28:
-                integer = 0
-                for i in range(1, -1, -1):
-                    integer = integer * 256 + scratchpad[i]
-                self.temperature = (integer * 25.0) / 400.0
 
-        # TODO: if self.reset() == 0 the temperatur is 0
+        if not self.reset():
+            print("Err Measured no Temperatur")
+            raise NoTempError()
+
+        self.datamode()
+        self.portwrite(self.__MATCHROM)
+        self.getchrrs232()
+        for i in range(0, 8):
+            self.portwrite(self.romstorage[adress][i])
+            #print (hex(self.romstorage[adress][i])+" ", end="")
+            if self.debug:
+                print (hex(self.romstorage[adress][i]), end='')
+        self.portwrite(self.__READ)
+        sleep(0.005)
+        self.flushrs232()
+        for i in range(9):
+            self.portwrite(0xff)
+            sleep(0.005)
+            scratchpad[i] = self.getchrrs232()
+            #print (hex(scratchpad[i])+" ", end="")
+        self.commandmode()
+        self.reset()
+        if self.crc8(scratchpad) != 0:
+            self.temperature = 9999.999
+            print ("Err CRC")
+            raise CRCError()
+        #calculate temperatur
+        #ds1820
+        if self.romstorage[adress][0] == 0x10:
+            integer = 0
+            for i in range(1, -1, -1):
+                integer = integer * 256 + scratchpad[i]
+            integer = integer / 2
+            self.temperature = ((scratchpad[7] - scratchpad[6]) / scratchpad[7]) + integer - 0.25
+        #ds18b20
+        if self.romstorage[adress][0] == 0x28:
+            integer = 0
+            for i in range(1, -1, -1):
+                integer = integer * 256 + scratchpad[i]
+            self.temperature = (integer * 25.0) / 400.0
+
         return self.temperature
 
     def checkdevices(self):
@@ -411,3 +419,9 @@ class DS2480b(object):
                         print ("first ds19b20:" + hex(i))
                 self.ds19b20no += 1
         return devices
+
+class CRCError(Exception):
+    pass
+
+class NoTempError(Exception):
+    pass
