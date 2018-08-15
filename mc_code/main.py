@@ -133,6 +133,8 @@ while True:
         lpp.send(reset_payload=True)
 
     pycom.rgbled(RGBOFF)
+    wdt.feed()
+    debug('Feed the watchdog.')
     sleep(10)
 
 VAR.closers232()
