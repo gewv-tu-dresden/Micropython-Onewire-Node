@@ -23,6 +23,12 @@
   <link rel="stylesheet" href="css/skeleton.css">
   <link rel="stylesheet" href="css/costum.css">
 
+  <!-- Imports
+  ––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <link rel="import" href="status.html">
+  <link rel="import" href="sensors.html">
+  <link rel="import" href="lora.html">
+
 </head>
 <body>
 
@@ -32,17 +38,70 @@
   </div>
 
   <div class="row">
-    <div class="three column">
-      <button>Button element</button>
-      <button>Button element</button>
-      <button>Button element</button>
+    <div class="three columns">
+      <div class="row"><button id="button_1" class="button-primary" onClick="handleButtonClick(1)" style="width: 100%;">Sensoren</button></div>
+      <div class="row"><button id="button_2" onClick="handleButtonClick(2)" style="width: 100%;">Status</button></div>
+      <div class="row"><button id="button_3" onClick="handleButtonClick(3)" style="width: 100%;">Lora</button></div>
     </div>
 
-    <div class="nine columns">
-      <h2>Content</h2>
-    </div>
+    <div id="content" class="nine columns"></div>
   </div>
 </div>
 
 </body>
+
+<!-- Logic
+––––––––––––––––––––––––––––––––––––––––––––––––– -->
+<script>
+  // CONSTANTS
+  const VIEWS = {
+    sensors : 1,
+    status: 2,
+    lora: 3,
+  }
+  let state = {
+    view: VIEWS.sensors,
+  }
+
+  // FUNCTIONS
+  loadView = (view_id) => {
+    const links = document.querySelectorAll('link[rel="import"]');
+    let link = null
+    const targetView = Object.keys(VIEWS).find(key => VIEWS[key] === view_id);
+
+    links.forEach(element => {
+      let pathname = new URL(element.href).pathname
+      pathname = pathname.replace('/','').replace('.html', '')
+
+      if (pathname === targetView) {
+        link = element
+      }
+    })
+
+    if (link != null) {
+      // Clone the <template> in the import.
+      const template = link.import.querySelector('template');
+      const clone = document.importNode(template.content, true);
+      const content = document.querySelector('#content')
+
+      while (content.firstChild) {
+          content.firstChild.remove();
+      }
+      content.appendChild(clone);
+    }
+  }
+
+  handleButtonClick = (view_id) => {
+    state = Object.assign({}, state, {
+      view: view_id,
+    })
+
+    loadView(view_id)
+    document.querySelectorAll('button').forEach(element => element.classList.remove('button-primary'))
+    document.querySelector('#button_' + view_id).classList.toggle('button-primary')
+  }
+
+  // set standard site
+  loadView(state.view)
+</script>
 </html>
