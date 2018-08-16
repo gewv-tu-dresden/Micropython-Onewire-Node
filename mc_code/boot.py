@@ -27,16 +27,8 @@ lora = LoRa(mode=LoRa.LORAWAN, region=LoRa.EU868)
 # Initialize watchdog
 # wdt = WDT(timeout=60000)
 
+# Initialize Webserver
 wser = Webserver(dev_eui=DEV_EUI)
-wser.start()
-
-time.sleep(10)
-
-wser.stop()
-
-time.sleep(10)
-
-wser.start()
 
 ####################
 

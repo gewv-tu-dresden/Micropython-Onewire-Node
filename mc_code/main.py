@@ -69,6 +69,11 @@ def toggle_debug(arg):
     if VAR is not None:
         VAR.debug = DEBUG
 
+    if DEBUG:
+        wser.start()
+    else:
+        wser.stop()
+
     sleep(0.5)
     pycom.rgbled(RGBCOLOR)
 
