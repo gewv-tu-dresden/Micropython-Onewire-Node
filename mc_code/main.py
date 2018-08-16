@@ -74,6 +74,7 @@ def toggle_debug(arg):
 
 debug_pin.callback(Pin.IRQ_RISING, toggle_debug)
 
+'''
 log('*******************Testprogramm DS2480B************************')
 VAR = DS2480b(debug=DEBUG, temperature=-300)
 VAR.set232parameter(port=1)
@@ -133,8 +134,9 @@ while True:
         lpp.send(reset_payload=True)
 
     pycom.rgbled(RGBOFF)
-    wdt.feed()
+    # wdt.feed()
     debug('Feed the watchdog.')
     sleep(10)
 
 VAR.closers232()
+'''
