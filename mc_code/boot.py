@@ -4,9 +4,9 @@ import time
 import ubinascii as binascii
 import pycom
 from machine import WDT
-from network import LoRa, WLAN
+from network import LoRa
 import socket
-from microWebSrv import MicroWebSrv
+from webserver import Webserver
 
 ### Const ###
 RED = 0x220000
@@ -27,95 +27,16 @@ lora = LoRa(mode=LoRa.LORAWAN, region=LoRa.EU868)
 # Initialize watchdog
 # wdt = WDT(timeout=60000)
 
-# Initialize wlan access point
-wlan = WLAN(mode=WLAN.AP, ssid="GEWV_LORA_NODE_" + DEV_EUI, auth=(WLAN.WPA2, "let_me_in"), channel=7, antenna=WLAN.INT_ANT)
+wser = Webserver(dev_eui=DEV_EUI)
+wser.start()
 
-@MicroWebSrv.route('/test')
-def httpHandlerTestGet(httpClient, httpResponse):
-    content = """
-    <!DOCTYPE html>
-    <html lang=en>
-        <head>
-            <meta charset="UTF-8" />
-            <title>TEST GET</title>
-        </head>
-        <body>
-            <h1>TEST GET</h1>
-            Client IP address = {}
-            <br />
-            <form action="/test" method="post" accept-charset="ISO-8859-1">
-                First name: <input type="text" name="firstname"><br />
-                Last name: <input type="text" name="lastname"><br />
-                <input type="submit" value="Submit">
-            </form>
-        </body>
-    </html>
-    """.format(httpClient.GetIPAddr())
+time.sleep(10)
 
-    httpResponse.WriteResponseOk(   headers = None,
-                                    contentType = "text/html",
-                                    contentCharset = "UTF-8",
-                                    content = content )
+wser.stop()
 
-@MicroWebSrv.route('/test', 'POST')
-def _httpHandlerTestPost(httpClient, httpResponse) :
-    formData  = httpClient.ReadRequestPostedFormData()
-    firstname = formData["firstname"]
-    lastname  = formData["lastname"]
-    content   = """\
-    <!DOCTYPE html>
-    <html lang=en>
-        <head>
-            <meta charset="UTF-8" />
-            <title>TEST POST</title>
-        </head>
-        <body>
-            <h1>TEST POST</h1>
-            Firstname = %s<br />
-            Lastname = %s<br />
-        </body>
-    </html>
-    """ % ( MicroWebSrv.HTMLEscape(firstname),
-            MicroWebSrv.HTMLEscape(lastname) )
-    httpResponse.WriteResponseOk( headers         = None,
-                                  contentType     = "text/html",
-                                  contentCharset = "UTF-8",
-                                  content          = content )
+time.sleep(10)
 
-
-@MicroWebSrv.route('/edit/<index>')             # <IP>/edit/123           ->   args['index']=123
-@MicroWebSrv.route('/edit/<index>/abc/<foo>')   # <IP>/edit/123/abc/bar   ->   args['index']=123  args['foo']='bar'
-@MicroWebSrv.route('/edit')                     # <IP>/edit               ->   args={}
-def _httpHandlerEditWithArgs(httpClient, httpResponse, args={}) :
-    content = """\
-    <!DOCTYPE html>
-    <html lang=en>
-        <head>
-            <meta charset="UTF-8" />
-            <title>TEST EDIT</title>
-        </head>
-        <body>
-    """
-    content += "<h1>EDIT item with {} variable arguments</h1>"\
-        .format(len(args))
-
-    if 'index' in args :
-        content += "<p>index = {}</p>".format(args['index'])
-
-    if 'foo' in args :
-        content += "<p>foo = {}</p>".format(args['foo'])
-
-    content += """
-        </body>
-    </html>
-    """
-    httpResponse.WriteResponseOk( headers         = None,
-                                  contentType     = "text/html",
-                                  contentCharset = "UTF-8",
-                                  content          = content )
-# Initialize Webserver
-mws = MicroWebSrv(webPath='www/')
-mws.Start()
+wser.start()
 
 ####################
 
