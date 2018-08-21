@@ -2,7 +2,6 @@
   "removeComments": true,
   "collapseBooleanAttributes": true,
   "collapseWhitespace": true,
-  "removeRedundantAttributes": true,
   "removeEmptyAttributes": true,
   "removeOptionalTags": true,
   "removeEmptyElements": false,
