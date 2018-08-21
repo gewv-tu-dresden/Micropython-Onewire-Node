@@ -40,8 +40,8 @@
   <div class="row">
     <div class="three columns">
       <div class="row"><button id="button_1" class="button-primary" onClick="handleNavButtonClick(1)" style="width: 100%;">Sensoren</button></div>
-      <div class="row"><button id="button_2" onClick="handleButtonClick(2)" style="width: 100%;">Status</button></div>
-      <div class="row"><button id="button_3" onClick="handleButtonClick(3)" style="width: 100%;">Lora</button></div>
+      <div class="row"><button id="button_2" onClick="handleNavButtonClick(2)" style="width: 100%;">Status</button></div>
+      <div class="row"><button id="button_3" onClick="handleNavButtonClick(3)" style="width: 100%;">Lora</button></div>
     </div>
 
     <div id="content" class="nine columns"></div>
@@ -188,11 +188,10 @@
     }
   }
 
-  handleReloadClick = () => {
-    loadState()
+  handleReloadClick = async () => {
+    await loadState()
+    loadView(state.view)
   }
-
-  // set standard site
 
   document.addEventListener("DOMContentLoaded", async (event) => {
     await loadState()
