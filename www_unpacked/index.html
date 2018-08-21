@@ -28,12 +28,18 @@
 
 <div class="container">
   <div class="row">
-    <h1 id="top_headline">GEWV Lora Node</h1>
+    <h2 class="eleven columns" id="top_headline">GEWV Lora Node <b id="dev_eui"></b></h1>
+  </div>
+
+  <hr class="underline_hr">
+
+  <div class="row">
+    <button class="button button-icon u-pull-right" id="reloadButton" onClick="handleReloadClick()">&#x21bb;</button>
   </div>
 
   <div class="row">
     <div class="three columns">
-      <div class="row"><button id="button_1" class="button-primary" onClick="handleButtonClick(1)" style="width: 100%;">Sensoren</button></div>
+      <div class="row"><button id="button_1" class="button-primary" onClick="handleNavButtonClick(1)" style="width: 100%;">Sensoren</button></div>
       <div class="row"><button id="button_2" onClick="handleButtonClick(2)" style="width: 100%;">Status</button></div>
       <div class="row"><button id="button_3" onClick="handleButtonClick(3)" style="width: 100%;">Lora</button></div>
     </div>
@@ -57,17 +63,30 @@
 
 <template id="sensors_template">
   <div id="sensors_container" class="container">
-    <h3>Sensors</h3>
-    <!-- Img is not requested until the <template> goes live. -->
-    <script></script>
+    <table id="sensor_table" class="u-full-width">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Adress</th>
+          <th>Value</th>
+        </tr>
+      </thead>
+      <tbody id="sensors_table_body">
+      </tbody>
+    <table>
   </div>
 </template>
 
 <template id="lora_template">
   <div id="lora_container" class="container">
-    <h3>Lora Status</h3>
-    <!-- Img is not requested until the <template> goes live. -->
-    <script></script>
+    <label for="dev_eui_form">Device EUI</label>
+    <input class="u-full-width" type="text" id="dev_eui_form">
+
+    <label for="app_eui_form">App EUI</label>
+    <input class="u-full-width" type="text" id="app_eui_form">
+
+    <label for="app_key_form">App Key</label>
+    <input class="u-full-width" type="password" value="123456789" id="app_key_form">
   </div>
 </template>
 
@@ -111,7 +130,7 @@
     }
   }
 
-  handleButtonClick = (view_id) => {
+  handleNavButtonClick = (view_id) => {
     state = Object.assign({}, state, {
       view: view_id,
     })
@@ -121,7 +140,63 @@
     document.querySelector('#button_' + view_id).classList.toggle('button-primary')
   }
 
+  buildSensorsTable = (sensors) => {
+    const tbody = document.createElement('tbody')
+    tbody.id = 'sensors_table_body'
+
+    for (const [name, sensor] of Object.entries(sensors)) {
+      const nameCell = document.createElement('td')
+      nameCell.innerHTML = name
+      const addressCell = document.createElement('td')
+      addressCell.innerHTML = sensor[0]
+      const valueCell = document.createElement('td')
+      valueCell.innerHTML = sensor[1]
+
+      const row = document.createElement('tr')
+      row.appendChild(nameCell)
+      row.appendChild(addressCell)
+      row.appendChild(valueCell)
+      tbody.appendChild(row)
+    }
+
+    return tbody
+  }
+
+  loadState = async () => {
+    try {
+      res = await fetch('state')
+      deviceState = await res.json()
+
+      if (state != null) {
+        document.querySelector('#dev_eui').innerHTML = deviceState.dev_eui
+
+        // list sensors
+        const sensorsTemplate = document.querySelector('#sensors_template').content
+        const sensorTable = sensorsTemplate.querySelector('#sensor_table')
+        const tableBody = sensorsTemplate.querySelector('#sensors_table_body')
+        const newTableBody = buildSensorsTable(deviceState.sensors)
+        sensorTable.replaceChild(newTableBody, tableBody)
+
+        // modify lora forms
+        const loraTemplate = document.querySelector('#lora_template').content
+        loraTemplate.querySelector('#dev_eui_form').value = deviceState.dev_eui
+        loraTemplate.querySelector('#app_eui_form').value = deviceState.app_eui
+
+      }
+    } catch (err) {
+      console.error(`Failed to fetch state: ${err}`)
+    }
+  }
+
+  handleReloadClick = () => {
+    loadState()
+  }
+
   // set standard site
-  loadView(state.view)
+
+  document.addEventListener("DOMContentLoaded", async (event) => {
+    await loadState()
+    loadView(state.view)
+  });
 </script>
 </html>

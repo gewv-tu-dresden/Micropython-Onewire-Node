@@ -88,7 +88,11 @@ log("search...")
 VAR.getallid()
 clientno = VAR.checkdevices()
 # VAR.debug = 0
-state['sensor_roms'] = VAR.romstorage
+for rom in VAR.romstorage:
+    if rom is not None:
+        name = " ".join(map(hex, rom))
+        id = "".join(map(str, rom))
+        state.add_sensor(id, name)
 
 log("initialize cayennelpp")
 lpp = CayenneLPP(size=51, sock=s)
@@ -111,12 +115,14 @@ while True:
             try:
                 rom_storage = VAR.romstorage[j]
                 acq_temp = VAR.acquiretemp(j)
+                id = "".join(map(str, rom_storage))
 
                 if not lpp.is_within_size_limit(2):
                     print("Next sensor overflow package size.")
                 else:
                     if acq_temp >= -55.0 and acq_temp <= 125.0:
                         lpp.add_temperature(acq_temp, j)
+                        state.update_sensor(id, acq_temp)
 
                 debug("{} {} 'C'".format(rom_storage, acq_temp))
 

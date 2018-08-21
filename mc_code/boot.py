@@ -7,18 +7,17 @@ from machine import WDT
 from network import LoRa
 import socket
 from webserver import Webserver
+from state import State
 
 ### Const ###
 RED = const(0x220000)
 YELLOW = const(0x222200)
 
 # state of the system
-state = {
-    'sensors':  {},
-    'dev_eui': '004BA9B9A7199F28',
-    'app_eui': '70B3D57ED00109EF',
-    'app_key': 'B0B863F19717BB0BB5D73370BA08A252',
-}
+state = State()
+state.dev_eui = '004BA9B9A7199F28'
+state.app_eui = '70B3D57ED00109EF'
+state.app_key = 'B0B863F19717BB0BB5D73370BA08A252'
 
 ###  Initialize ###
 
@@ -53,9 +52,9 @@ if machine.reset_cause() == machine.DEEPSLEEP_RESET and lora.has_joined():
 else:
     print("Try to join TTN")
     # create an OTAA authentication parameters
-    dev_eui = binascii.unhexlify(state['dev_eui'])
-    app_eui = binascii.unhexlify(state['app_eui'])
-    app_key = binascii.unhexlify(state['app_key'])
+    dev_eui = binascii.unhexlify(state.dev_eui)
+    app_eui = binascii.unhexlify(state.app_eui)
+    app_key = binascii.unhexlify(state._app_key)
 
     # join a network using OTAA (Over the Air Activation)
     lora.join(activation=LoRa.OTAA, auth=(dev_eui, app_eui, app_key), timeout=0)
