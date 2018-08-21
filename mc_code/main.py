@@ -21,7 +21,6 @@ UART_ERROR = 1
 CRC_ERROR = 2
 UNKNOWN_ERROR = 3
 
-
 # config IO
 # myled = Pin('P2', mode=Pin.OUT) Remove this, becouse inbuild led is on P2 too
 lock_pin = Pin('P8', mode=Pin.IN, pull=Pin.PULL_UP)
@@ -79,7 +78,7 @@ def toggle_debug(arg):
 
 debug_pin.callback(Pin.IRQ_RISING, toggle_debug)
 
-'''
+wser.start()
 log('*******************Testprogramm DS2480B************************')
 VAR = DS2480b(debug=DEBUG, temperature=-300)
 VAR.set232parameter(port=1)
@@ -89,6 +88,7 @@ log("search...")
 VAR.getallid()
 clientno = VAR.checkdevices()
 # VAR.debug = 0
+state['sensor_roms'] = VAR.romstorage
 
 log("initialize cayennelpp")
 lpp = CayenneLPP(size=51, sock=s)
@@ -144,4 +144,3 @@ while True:
     sleep(10)
 
 VAR.closers232()
-'''

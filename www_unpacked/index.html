@@ -23,12 +23,6 @@
   <link rel="stylesheet" href="css/skeleton.css">
   <link rel="stylesheet" href="css/costum.css">
 
-  <!-- Imports
-  ––––––––––––––––––––––––––––––––––––––––––––––––– -->
-  <link rel="import" href="status.html">
-  <link rel="import" href="sensors.html">
-  <link rel="import" href="lora.html">
-
 </head>
 <body>
 
@@ -50,6 +44,34 @@
 
 </body>
 
+<!-- Templates
+––––––––––––––––––––––––––––––––––––––––––––––––– -->
+
+<template id="status_template">
+  <div id="status_container" class="container">
+    <h3>Status</h3>
+    <!-- Img is not requested until the <template> goes live. -->
+    <script></script>
+  </div>
+</template>
+
+<template id="sensors_template">
+  <div id="sensors_container" class="container">
+    <h3>Sensors</h3>
+    <!-- Img is not requested until the <template> goes live. -->
+    <script></script>
+  </div>
+</template>
+
+<template id="lora_template">
+  <div id="lora_container" class="container">
+    <h3>Lora Status</h3>
+    <!-- Img is not requested until the <template> goes live. -->
+    <script></script>
+  </div>
+</template>
+
+
 <!-- Logic
 ––––––––––––––––––––––––––––––––––––––––––––––––– -->
 <script>
@@ -65,22 +87,20 @@
 
   // FUNCTIONS
   loadView = (view_id) => {
-    const links = document.querySelectorAll('link[rel="import"]');
-    let link = null
+    const links = document.querySelectorAll('template');
+    let template = null
     const targetView = Object.keys(VIEWS).find(key => VIEWS[key] === view_id);
 
     links.forEach(element => {
-      let pathname = new URL(element.href).pathname
-      pathname = pathname.replace('/','').replace('.html', '')
+      const id = element.id.replace('_template', '')
 
-      if (pathname === targetView) {
-        link = element
+      if (id === targetView) {
+        template = element
       }
     })
 
-    if (link != null) {
+    if (template != null) {
       // Clone the <template> in the import.
-      const template = link.import.querySelector('template');
       const clone = document.importNode(template.content, true);
       const content = document.querySelector('#content')
 

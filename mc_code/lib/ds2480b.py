@@ -9,31 +9,32 @@ from copy import deepcopy
 from binascii import unhexlify
 from time import sleep
 
+#lokale Konstanten
+#declare konstanten DS2480b
+__RESET = const(0xC1)
+__ACK = const(0xCD)
+__PULLUP = const(0x3B)
+__DATAMODE = const(0xE1)
+__COMMANDMODE = const(0xE3)
+__PULLUPARM = const(0xEF)
+__PULLUPDISARM = const(0xED)
+__PULSETERMINATE = const(0xF1)
+__SEARCHROM = const(0xF0)
+__ACCELERATORON = const(0xB1)
+__ACCELERATOROFF = const(0xA1)
+#declare konstanten DS1820
+__CONVERTT = const(0x44)
+__READ = const(0xBE)
+__SKIPROM = const(0xCC)
+__MATCHROM = const(0x55)
+
+
 class DS2480b():
     """one wire master DS2480b Abfrage
     getestet mit Firmware LoPy4-1.18.0"""
-    #lokale Konstanten
-    #declare konstanten DS2480b
-    #Test
-    __ACK = 0xCD
-    __RESET = 0xC1
-    __PULLUP = 0x3B
-    __DATAMODE = 0xE1
-    __COMMANDMODE = 0xE3
-    __PULLUPARM = 0xEF
-    __PULLUPDISARM = 0xED
-    __PULSETERMINATE = 0xF1
-    __PULLUPDISARM = 0xED
-    __SEARCHROM = 0xF0
-    __ACCELERATORON = 0xB1
-    __ACCELERATOROFF = 0xA1
-    #declare konstanten DS1820
-    __CONVERTT = 0x44
-    __READ = 0xBE
-    __SKIPROM = 0xCC
-    __MATCHROM = 0x55
+
     #delacre variabeln fuer die Klasse
-    _iscmdmode = 0
+    _iscmdmode = False
 
     #search state
     _lastdiscrepancy = 0
@@ -41,7 +42,7 @@ class DS2480b():
     _lastfamilydiscrepancy = 0
     newromno = [0]*8
 
-#variabeln der Klasse --> oeffentlich
+    #variabeln der Klasse --> oeffentlich
     def __init__(self, temperature=0, ds1920no=0, ds1920first=0, ds19b20no=0,
     ds19b20first=0, rom_storage=[None]*100, debug=False):
         """init der methoden variabeln"""
@@ -63,7 +64,7 @@ class DS2480b():
         print ("Err OneWireBus --> Reset Interface")
         self.closers232()
         self.initrs232()
-        res = self.portwrite(self.__RESET)
+        res = self.portwrite(__RESET)
         print("Reset interface. Response from chip: {}".format(res))
 
     def set232parameter(self, port=1, baud=9600):
@@ -97,16 +98,16 @@ class DS2480b():
 #*********************DS2480B Routinen******************************************
     def commandmode(self):
         """check commandmode"""
-        if self._iscmdmode == 0:
+        if not self._iscmdmode:
             self._iscmdmode = True
-            self.portwrite(self.__COMMANDMODE)
+            self.portwrite(__COMMANDMODE)
             return self.getchrrs232()
 
     def datamode(self):
         """check datamode"""
-        if self._iscmdmode == 1:
+        if self._iscmdmode:
             self._iscmdmode = False
-            self.portwrite(self.__DATAMODE)
+            self.portwrite(__DATAMODE)
 
     def portwrite(self, value=0):
         """write data"""
@@ -114,7 +115,7 @@ class DS2480b():
             print("debug value write: {}".format(hex(value)))
 
         self.interface.write(bytearray([value]))
-        if self._iscmdmode == 1:
+        if self._iscmdmode:
             #return chr if cmd mode
             sleep(0.010)
             return self.getchrrs232()
@@ -152,11 +153,11 @@ class DS2480b():
     def reset(self):
         """reset one wire bus"""
         self.commandmode()
-        char = self.portwrite(self.__RESET)
+        char = self.portwrite(__RESET)
         if self.debug:
             print("Reset initialize. Answer from device: {}".format(char))
 
-        if char == self.__ACK:
+        if char == __ACK:
             return True
         else:
             self.interfacereset()
@@ -171,20 +172,20 @@ class DS2480b():
             self.newromno = [0]*8
     def search(self):
         """
-// Perform a search. If this function returns a '1' then it has
-// enumerated the next device and you may retrieve the ROM from the
-// DS2480B::address variable. If there are no devices, no further
-// devices, or something horrible happens in the middle of the
-// enumeration then a 0 is returned.  If a new device is found then
-// its address is copied to newAddr.  Use DS2480B::reset_search() to
-// start over.
-//
-// --- Replaced by the one from the Dallas Semiconductor web site ---
-//--------------------------------------------------------------------------
-// Perform the 1-Wire Search Algorithm on the 1-Wire bus using the existing
-// search state.
-// Return TRUE  : device found, ROM number in ROM_NO buffer
-//        FALSE : device not found, end of search
+        // Perform a search. If this function returns a '1' then it has
+        // enumerated the next device and you may retrieve the ROM from the
+        // DS2480B::address variable. If there are no devices, no further
+        // devices, or something horrible happens in the middle of the
+        // enumeration then a 0 is returned.  If a new device is found then
+        // its address is copied to newAddr.  Use DS2480B::reset_search() to
+        // start over.
+        //
+        // --- Replaced by the one from the Dallas Semiconductor web site ---
+        //--------------------------------------------------------------------------
+        // Perform the 1-Wire Search Algorithm on the 1-Wire bus using the existing
+        // search state.
+        // Return TRUE  : device found, ROM number in ROM_NO buffer
+        //        FALSE : device not found, end of search
         """
         ##initialize for search
         id_bit_number = 1
@@ -205,7 +206,7 @@ class DS2480b():
                 self.resetsearch()
                 return False
             self.datamode()
-            self.portwrite(self.__SEARCHROM)
+            self.portwrite(__SEARCHROM)
             self.getchrrs232()
             while True:
                 #read a bit and its complement
@@ -320,19 +321,19 @@ class DS2480b():
         """DS1820 Temp.messung anstossen"""
         result = 0
         self.commandmode()
-        self.portwrite(self.__PULLUP)
+        self.portwrite(__PULLUP)
         if self.reset():
             self.datamode()
-            self.portwrite(self.__SKIPROM)
+            self.portwrite(__SKIPROM)
             self.commandmode()
-            self.portwrite(self.__PULLUPARM)
-            self.portwrite(self.__PULSETERMINATE)
+            self.portwrite(__PULLUPARM)
+            self.portwrite(__PULSETERMINATE)
             self.datamode()
-            self.portwrite(self.__CONVERTT)
+            self.portwrite(__CONVERTT)
             self.getchrrs232()
             self.commandmode()
-            self.portwrite(self.__PULLUPDISARM)
-            self.portwrite(self.__PULSETERMINATE)
+            self.portwrite(__PULLUPDISARM)
+            self.portwrite(__PULSETERMINATE)
             self.getchrrs232()
             self.reset()
         return result
@@ -349,14 +350,14 @@ class DS2480b():
             raise NoTempError()
 
         self.datamode()
-        self.portwrite(self.__MATCHROM)
+        self.portwrite(__MATCHROM)
         self.getchrrs232()
         for i in range(0, 8):
             self.portwrite(self.romstorage[adress][i])
             #print (hex(self.romstorage[adress][i])+" ", end="")
             if self.debug:
                 print (hex(self.romstorage[adress][i]), end='')
-        self.portwrite(self.__READ)
+        self.portwrite(__READ)
         sleep(0.005)
         self.flushrs232()
         for i in range(9):

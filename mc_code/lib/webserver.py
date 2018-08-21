@@ -4,14 +4,14 @@ from time import sleep
 
 class Webserver():
 
-    def __init__(self, dev_eui):
+    def __init__(self, dev_state):
         self.wlan = None
         self.mws = MicroWebSrv(webPath='www/')
-        self.dev_eui = dev_eui
+        self.dev_state = dev_state
 
     def start(self):
         print('Start wlan access point and webserver.')
-        self.wlan = WLAN(mode=WLAN.AP, ssid="GEWV_LORA_NODE_" + self.dev_eui, auth=(WLAN.WPA2, "let_me_in"), channel=7, antenna=WLAN.INT_ANT)
+        self.wlan = WLAN(mode=WLAN.AP, ssid="GEWV_LORA_NODE_" + self.dev_state['dev_eui'], auth=(WLAN.WPA2, "let_me_in"), channel=7, antenna=WLAN.INT_ANT)
         self.mws.Start()
         sleep(0.2)
 
@@ -30,32 +30,19 @@ class Webserver():
         else:
             raise Exception('Webserver stop is failed.')
 
-@MicroWebSrv.route('/test')
-def httpHandlerTestGet(httpClient, httpResponse):
-    content = """
-    <!DOCTYPE html>
-    <html lang=en>
-        <head>
-            <meta charset="UTF-8" />
-            <title>TEST GET</title>
-        </head>
-        <body>
-            <h1>TEST GET</h1>
-            Client IP address = {}
-            <br />
-            <form action="/test" method="post" accept-charset="ISO-8859-1">
-                First name: <input type="text" name="firstname"><br />
-                Last name: <input type="text" name="lastname"><br />
-                <input type="submit" value="Submit">
-            </form>
-        </body>
-    </html>
-    """.format(httpClient.GetIPAddr())
+    def init_webserver(self):
+        def httpHandlerTestGet(httpClient, httpResponse):
+            # TODO: Need self here. But
+            print('Try to get state: {}'.format(self.dev_state))
+            httpResponse.WriteResponseJSONOk(   headers = None,
+                                                obj = self.dev_state )
 
-    httpResponse.WriteResponseOk(   headers = None,
-                                    contentType = "text/html",
-                                    contentCharset = "UTF-8",
-                                    content = content )
+        self.routeHandlers = [
+            ( '/state', 'GET', httpHandlerTestGet)
+        ]
+        self.mws = MicroWebSrv(
+            webPath='www/',
+            routeHandlers=self.routeHandlers )
 
 @MicroWebSrv.route('/test', 'POST')
 def _httpHandlerTestPost(httpClient, httpResponse) :

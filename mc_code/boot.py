@@ -9,11 +9,16 @@ import socket
 from webserver import Webserver
 
 ### Const ###
-RED = 0x220000
-YELLOW = 0x222200
-DEV_EUI = '004BA9B9A7199F28'
-APP_EUI = '70B3D57ED00109EF'
-APP_KEY = 'B0B863F19717BB0BB5D73370BA08A252'
+RED = const(0x220000)
+YELLOW = const(0x222200)
+
+# state of the system
+state = {
+    'sensors':  {},
+    'dev_eui': '004BA9B9A7199F28',
+    'app_eui': '70B3D57ED00109EF',
+    'app_key': 'B0B863F19717BB0BB5D73370BA08A252',
+}
 
 ###  Initialize ###
 
@@ -28,8 +33,8 @@ lora = LoRa(mode=LoRa.LORAWAN, region=LoRa.EU868)
 # wdt = WDT(timeout=60000)
 
 # Initialize Webserver
-wser = Webserver(dev_eui=DEV_EUI)
-
+wser = Webserver(dev_state=state)
+wser.init_webserver()
 ####################
 
 pycom.heartbeat(False)
@@ -48,9 +53,9 @@ if machine.reset_cause() == machine.DEEPSLEEP_RESET and lora.has_joined():
 else:
     print("Try to join TTN")
     # create an OTAA authentication parameters
-    dev_eui = binascii.unhexlify(DEV_EUI)
-    app_eui = binascii.unhexlify(APP_EUI)
-    app_key = binascii.unhexlify(APP_KEY)
+    dev_eui = binascii.unhexlify(state['dev_eui'])
+    app_eui = binascii.unhexlify(state['app_eui'])
+    app_key = binascii.unhexlify(state['app_key'])
 
     # join a network using OTAA (Over the Air Activation)
     lora.join(activation=LoRa.OTAA, auth=(dev_eui, app_eui, app_key), timeout=0)
