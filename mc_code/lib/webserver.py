@@ -31,13 +31,21 @@ class Webserver():
             raise Exception('Webserver stop is failed.')
 
     def init_webserver(self):
-        def httpHandlerTestGet(httpClient, httpResponse):
+        def httpHandlerGETState(httpClient, httpResponse):
             httpResponse.WriteResponseJSONOk(   headers = None,
                                                 obj = self.dev_state.get_state())
 
+        def httpHandlerGETChartist(httpClient, httpResponse):
+            print('Chartist is requested.')
+            httpResponse.WriteResponseFile('chartist.min.js',
+                                           contentType='application/javascript',
+                                           headers=None)
+
         self.routeHandlers = [
-            ( '/state', 'GET', httpHandlerTestGet)
+            ( '/state', 'GET', httpHandlerGETState),
+            ( '/chartist.min.js', 'GET', httpHandlerGETChartist)
         ]
+
         self.mws = MicroWebSrv(
             webPath='www/',
             routeHandlers=self.routeHandlers )

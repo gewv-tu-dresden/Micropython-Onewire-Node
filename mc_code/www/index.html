@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><meta charset="utf-8"><title>LoPy4 Config</title><meta name="description" content="Small website to config and control the lopy."><meta name="author" content="Karl Wolffgang"><meta name="viewport" content="width=device-width,initial-scale=1"><link href="http://fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css"><link rel="stylesheet" href="css/normalize.css"><link rel="stylesheet" href="css/skeleton.css"><link rel="stylesheet" href="css/costum.css"><div class="container"><div class="row"><h2 class="eleven columns" id="top_headline">GEWV Lora Node <b id="dev_eui"></b></h2></div><hr class="underline_hr"><div class="row"><button class="button button-icon u-pull-right" id="reloadButton" onclick="handleReloadClick()">&#x21bb;</button></div><div class="row"><div class="three columns"><div class="row"><button id="button_1" class="button-primary" onclick="handleNavButtonClick(1)" style="width: 100%;">Sensoren</button></div><div class="row"><button id="button_2" onclick="handleNavButtonClick(2)" style="width: 100%;">Status</button></div><div class="row"><button id="button_3" onclick="handleNavButtonClick(3)" style="width: 100%;">Lora</button></div></div><div id="content" class="nine columns"></div></div></div><template id="status_template"><div id="status_container" class="container"><h3>Status</h3><script></script></div></template><template id="sensors_template"><div id="sensors_container" class="container"><table id="sensor_table" class="u-full-width"><thead><tr><th>Name<th>Adress<th>Value<tbody id="sensors_table_body"></tbody><table></table></table></div></template><template id="lora_template"><div id="lora_container" class="container"><label for="dev_eui_form">Device EUI</label> <input class="u-full-width" type="text" id="dev_eui_form"> <label for="app_eui_form">App EUI</label> <input class="u-full-width" type="text" id="app_eui_form"> <label for="app_key_form">App Key</label> <input class="u-full-width" type="password" value="123456789" id="app_key_form"></div></template><script>// CONSTANTS
+<!DOCTYPE html><html lang="en"><meta charset="utf-8"><title>LoPy4 Config</title><meta name="description" content="Small website to config and control the lopy."><meta name="author" content="Karl Wolffgang"><meta name="viewport" content="width=device-width,initial-scale=1"><link href="http://fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css"><link rel="stylesheet" href="css/normalize.css"><link rel="stylesheet" href="css/skeleton.css"><link rel="stylesheet" href="css/costum.css"><link rel="stylesheet" href="css/chartist.min.css"><script src="chartist.js"></script><div class="container"><div class="row"><h2 class="eleven columns" id="top_headline">GEWV Lora Node <b id="dev_eui"></b></h2></div><hr class="underline_hr"><div class="row"><b>Received at: </b><span id="receivedAtField"></span> <button class="button button-icon u-pull-right" id="reloadButton" onclick="handleReloadClick()">&#x21bb;</button></div><div class="row"><div class="three columns"><div class="row"><button id="button_1" class="button-primary" onclick="handleNavButtonClick(1)" style="width: 100%;">Sensoren</button></div><div class="row"><button id="button_2" onclick="handleNavButtonClick(2)" style="width: 100%;">Status</button></div><div class="row"><button id="button_3" onclick="handleNavButtonClick(3)" style="width: 100%;">Lora</button></div></div><div id="content_container" class="nine columns"><div id="sensor_chart" class="ct-chart ct-major-eleventh"></div><div id="content"></div></div></div></div><template id="status_template"><div id="status_container" class="container"><h3>Status</h3><script></script></div></template><template id="sensors_template" onload="buildChart"><div id="sensors_container" class="container"><table id="sensor_table" class="u-full-width"><thead><tr><th>Name<th>Adress<th>Value<th>Time<th>Cnt<tbody id="sensors_table_body"></tbody><table></table></table></div></template><template id="lora_template"><div id="lora_container" class="container"><label for="dev_eui_form">Device EUI</label> <input class="u-full-width" type="text" id="dev_eui_form"> <label for="app_eui_form">App EUI</label> <input class="u-full-width" type="text" id="app_eui_form"> <label for="app_key_form">App Key</label> <input class="u-full-width" type="password" value="123456789" id="app_key_form"></div></template><script>// CONSTANTS
   const VIEWS = {
     sensors : 1,
     status: 2,
@@ -7,6 +7,7 @@
   let state = {
     view: VIEWS.sensors,
   }
+  let chart = null
 
   // FUNCTIONS
   loadView = (view_id) => {
@@ -44,22 +45,39 @@
     document.querySelector('#button_' + view_id).classList.toggle('button-primary')
   }
 
-  buildSensorsTable = (sensors) => {
+  buildSensorsTable = (sensors, timestamp) => {
+    const timeStampNow = new Date()
     const tbody = document.createElement('tbody')
     tbody.id = 'sensors_table_body'
 
+
     for (const [name, sensor] of Object.entries(sensors)) {
+      const timeStampSensor = new Date(timeStampNow.valueOf())
       const nameCell = document.createElement('td')
       nameCell.innerHTML = name
+
       const addressCell = document.createElement('td')
       addressCell.innerHTML = sensor[0]
+
       const valueCell = document.createElement('td')
       valueCell.innerHTML = sensor[1]
+
+      const timeCell = document.createElement('td')
+      timeStampSensor.setSeconds(timeStampSensor.getSeconds() - (timestamp - sensor[2]))
+      timeCell.innerHTML = `${timeStampSensor.getHours()}:${timeStampSensor.getMinutes()}:${timeStampSensor.getSeconds()}`
+      timeCell.title = `${timeStampSensor.getFullYear()}-${timeStampSensor.getDate()}-${timeStampSensor.getMonth() + 1}`
+
+      const cntCell = document.createElement('td')
+      cntCell.innerHTML = sensor[3]
+
+
 
       const row = document.createElement('tr')
       row.appendChild(nameCell)
       row.appendChild(addressCell)
       row.appendChild(valueCell)
+      row.appendChild(timeCell)
+      row.appendChild(cntCell)
       tbody.appendChild(row)
     }
 
@@ -71,14 +89,16 @@
       res = await fetch('state')
       deviceState = await res.json()
 
-      if (state != null) {
+      if (deviceState != null) {
         document.querySelector('#dev_eui').innerHTML = deviceState.dev_eui
+        // received At field
+        document.querySelector('#receivedAtField').innerHTML = new Date().toString()
 
         // list sensors
         const sensorsTemplate = document.querySelector('#sensors_template').content
         const sensorTable = sensorsTemplate.querySelector('#sensor_table')
         const tableBody = sensorsTemplate.querySelector('#sensors_table_body')
-        const newTableBody = buildSensorsTable(deviceState.sensors)
+        const newTableBody = buildSensorsTable(deviceState.sensors, deviceState.send_time)
         sensorTable.replaceChild(newTableBody, tableBody)
 
         // modify lora forms
@@ -86,10 +106,48 @@
         loraTemplate.querySelector('#dev_eui_form').value = deviceState.dev_eui
         loraTemplate.querySelector('#app_eui_form').value = deviceState.app_eui
 
+        // update chart
+        updateChart(deviceState.sensors, deviceState.send_time)
       }
     } catch (err) {
       console.error(`Failed to fetch state: ${err}`)
     }
+  }
+
+  buildChart = () => {
+    const data = {}
+    const options = {
+      axisX: {
+        type: Chartist.FixedScaleAxis,
+        divisor: 1,
+        labelInterpolationFnc: function(value) {
+          return moment(value).format('HH:MM:SS');
+        }
+      }
+    }
+    return new Chartist.Line('#sensor_chart', data);
+  }
+
+  updateChart = (sensors, sendTime) => {
+    const timestamp = new Date()
+
+    const series = []
+    for (const [name, sensor] of Object.entries(sensors)) {
+      const serie = {
+        name: name,
+        data: [],
+      }
+
+      for (const entry of sensor[4]) {
+        if (entry != null) {
+          const sensorTime = new Date(timestamp.valueOf())
+          sensorTime.setSeconds(sensorTime.getSeconds() - (sendTime - entry[1]))
+          serie.data.push({x: sensorTime, y: entry[0]})
+        }
+      }
+      series.push(serie)
+    }
+    chart.update({ series })
   }
 
   handleReloadClick = async () => {
@@ -98,6 +156,7 @@
   }
 
   document.addEventListener("DOMContentLoaded", async (event) => {
+    chart = buildChart()
     await loadState()
     loadView(state.view)
   });</script>
