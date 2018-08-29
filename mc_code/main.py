@@ -93,12 +93,6 @@ VAR.getallid()
 VAR.checkdevices()
 VAR.update_state(state)
 
-state.clear_sensors()
-VAR.interfacereset()
-VAR.getallid()
-VAR.checkdevices()
-VAR.update_state(state)
-
 log("initialize cayennelpp")
 lpp = CayenneLPP(size=51, sock=s)
 
