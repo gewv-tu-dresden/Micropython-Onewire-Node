@@ -1,6 +1,7 @@
 from microWebSrv import MicroWebSrv
 from network import WLAN
 from time import sleep
+import sys
 
 class Webserver():
 
@@ -35,8 +36,32 @@ class Webserver():
             httpResponse.WriteResponseJSONOk(   headers = None,
                                                 obj = self.dev_state.get_state())
 
+        def httpHandlerPOSTsearchOnewire(httpClient, httpResponse):
+            if self.dev_state.onewire_interface is not None:
+                try:
+                    print('Request new search for one wire devices.')
+                    one_wire_inf = self.dev_state.onewire_interface
+                    one_wire_inf.interfacereset()
+                    one_wire_inf.getallid()
+                    one_wire_inf.checkdevices()
+
+                    self.dev_state.clear_sensors()
+                    one_wire_inf.update_state(self.dev_state)
+
+                    print('Find {} devices.'.format(one_wire_inf.num_devices))
+                    res = { "numDevices": one_wire_inf.num_devices }
+                    httpResponse.WriteResponseJSONOk(   headers = None,
+                                                        obj = res)
+                except Exception as e:
+                    sys.print_exception(e)
+                    httpResponse.WriteResponseBadRequest()
+            else:
+                httpResponse.WriteResponseBadRequest()
+
+
         self.routeHandlers = [
-            ( '/state', 'GET', httpHandlerGETState)
+            ( '/state', 'GET', httpHandlerGETState),
+            ( '/search_onewire', 'POST', httpHandlerPOSTsearchOnewire)
         ]
 
         self.mws = MicroWebSrv(

@@ -57,6 +57,8 @@ class DS2480b():
         self.interface = None
         self.interface_port = 1
         self.interface_baud = 9600
+
+        self.num_devices = 0
 #******************RS232 Routinen***********************************************
 
     def interfacereset(self):
@@ -170,6 +172,7 @@ class DS2480b():
         self._lastfamilydiscrepancy = 0
         if clearrom == 1:
             self.newromno = [0]*8
+
     def search(self):
         """
         // Perform a search. If this function returns a '1' then it has
@@ -201,7 +204,7 @@ class DS2480b():
         if self.debug:
             print ("search allgorithm")
         #if the last call was not the last one
-        if self._lastdeviceflag == 0:
+        if not self._lastdeviceflag:
             if not self.reset():
                 self.resetsearch()
                 return False
@@ -419,7 +422,16 @@ class DS2480b():
                     if self.debug:
                         print ("first ds19b20:" + hex(i))
                 self.ds19b20no += 1
+
+        self.num_devices = devices
         return devices
+
+    def update_state(self, state):
+        for rom in self.romstorage:
+            if rom is not None:
+                name = " ".join(map(hex, rom))
+                id = "".join(map(str, rom))
+                state.add_sensor(id, name)
 
 class CRCError(Exception):
     pass

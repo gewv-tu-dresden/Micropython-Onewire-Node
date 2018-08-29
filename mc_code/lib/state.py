@@ -8,6 +8,7 @@ class State():
         self.dev_eui = None
         self.app_eui = None
         self._app_key = None
+        self.onewire_interface = None
         self.chrono = Timer.Chrono()
         self.chrono.start()
         self.sensors = {}
@@ -40,6 +41,9 @@ class State():
 
     def remove_sensor(self, id):
         del self.sensors[id]
+
+    def clear_sensors(self):
+        self.sensors = {}
 
     def get_state(self):
         return {

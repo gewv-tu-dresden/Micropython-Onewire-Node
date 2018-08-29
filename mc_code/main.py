@@ -81,18 +81,23 @@ debug_pin.callback(Pin.IRQ_RISING, toggle_debug)
 wser.start()
 log('*******************Testprogramm DS2480B************************')
 VAR = DS2480b(debug=DEBUG, temperature=-300)
+
+# Connect state with onewire interface
+state.onewire_interface = VAR
+
 VAR.set232parameter(port=1)
 VAR.initrs232()
 
 log("search...")
 VAR.getallid()
-clientno = VAR.checkdevices()
-# VAR.debug = 0
-for rom in VAR.romstorage:
-    if rom is not None:
-        name = " ".join(map(hex, rom))
-        id = "".join(map(str, rom))
-        state.add_sensor(id, name)
+VAR.checkdevices()
+VAR.update_state(state)
+
+state.clear_sensors()
+VAR.interfacereset()
+VAR.getallid()
+VAR.checkdevices()
+VAR.update_state(state)
 
 log("initialize cayennelpp")
 lpp = CayenneLPP(size=51, sock=s)
@@ -111,7 +116,7 @@ while True:
         VAR.converttemp()
         print("Abfrage " + str(i) + ": ")
         sleep(1.8)
-        for j in range(0, clientno-1):
+        for j in range(0, VAR.num_devices-1):
             try:
                 rom_storage = VAR.romstorage[j]
                 acq_temp = VAR.acquiretemp(j)
@@ -130,11 +135,13 @@ while True:
             except CRCError:
                 if not lpp.is_within_size_limit(2):
                     print("Next exception overflow package size.")
-                    lpp.add_digital_input(CRC_ERROR, j+clientno)
+                else:
+                    lpp.add_digital_input(CRC_ERROR, j+VAR.num_devices)
             except NoTempError:
                 if not lpp.is_within_size_limit(2):
                     print("Next exception overflow package size.")
-                    lpp.add_digital_input(NO_TEMPRATUR_MEASURED, j+clientno)
+                else:
+                    lpp.add_digital_input(NO_TEMPRATUR_MEASURED, j+VAR.num_devices)
 
             except Exception as e:
                 log('--- Unknown Exception ---')
@@ -143,7 +150,8 @@ while True:
 
                 if not lpp.is_within_size_limit(2):
                     print("Next exception overflow package size.")
-                    lpp.add_digital_input(UNKNOWN_ERROR, j+clientno)
+                else:
+                    lpp.add_digital_input(UNKNOWN_ERROR, j+VAR.num_devices)
 
 
         print("Send temps to app server.")
