@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><meta charset="utf-8"><title>LoPy4 Config</title><meta name="description" content="Small website to config and control the lopy."><meta name="author" content="Karl Wolffgang"><meta name="viewport" content="width=device-width,initial-scale=1"><link href="http://fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css"><link rel="stylesheet" href="css/normalize.css"><link rel="stylesheet" href="css/skeleton.css"><link rel="stylesheet" href="css/costum.css"><link rel="stylesheet" href="css/chartist.min.css"><script src="chartist.js"></script><div class="container"><div class="row"><h2 class="eleven columns" id="top_headline">GEWV Lora Node <b id="dev_eui"></b></h2></div><hr class="underline_hr"><div class="row"><b>Received at: </b><span id="receivedAtField"></span> <button class="button button-icon u-pull-right" id="reloadButton" onclick="handleReloadClick()">&#x21bb;</button></div><div class="row"><div class="three columns"><div class="row"><button id="button_1" class="button-primary" onclick="handleNavButtonClick(1)" style="width: 100%;">Sensoren</button></div><div class="row"><button id="button_2" onclick="handleNavButtonClick(2)" style="width: 100%;">Status</button></div><div class="row"><button id="button_3" onclick="handleNavButtonClick(3)" style="width: 100%;">Lora</button></div></div><div id="content_container" class="nine columns"><div id="sensor_chart" class="ct-chart ct-major-eleventh"></div><div id="content"></div></div></div></div><template id="status_template"><div id="status_container" class="container"><h3>Status</h3><script></script></div></template><template id="sensors_template" onload="buildChart"><div id="sensors_container" class="container"><table id="sensor_table" class="u-full-width"><thead><tr><th>Name<th>Adress<th>Value<th>Time<th>Cnt<tbody id="sensors_table_body"></tbody><table></table></table></div></template><template id="lora_template"><div id="lora_container" class="container"><label for="dev_eui_form">Device EUI</label> <input class="u-full-width" type="text" id="dev_eui_form"> <label for="app_eui_form">App EUI</label> <input class="u-full-width" type="text" id="app_eui_form"> <label for="app_key_form">App Key</label> <input class="u-full-width" type="password" value="123456789" id="app_key_form"></div></template><script>// CONSTANTS
+<!DOCTYPE html><html lang="en"><meta charset="utf-8"><title>LoPy4 Config</title><meta name="description" content="Small website to config and control the lopy."><meta name="author" content="Karl Wolffgang"><meta name="viewport" content="width=device-width,initial-scale=1"><link href="http://fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css"><link rel="stylesheet" href="css/normalize.css"><link rel="stylesheet" href="css/skeleton.css"><link rel="stylesheet" href="css/costum.css"><link rel="stylesheet" href="css/chartist.min.css"><script src="chartist.js"></script><div class="container"><div class="row"><h2 class="eleven columns" id="top_headline">GEWV Lora Node <b id="dev_eui"></b></h2></div><hr class="underline_hr"><div class="row"><b>Received at: </b><span id="receivedAtField"></span> <button class="button button-icon u-pull-right" id="reloadButton" onclick="handleReloadClick()">&#x21bb;</button></div><div class="row"><div class="three columns"><div class="row"><button id="button_1" class="button-primary" onclick="handleNavButtonClick(1)" style="width: 100%;">Sensoren</button></div><div class="row"><button id="button_2" onclick="handleNavButtonClick(2)" style="width: 100%;">Status</button></div><div class="row"><button id="button_3" onclick="handleNavButtonClick(3)" style="width: 100%;">Lora</button></div></div><div id="content_container" class="nine columns"><div id="sensor_chart" class="ct-chart ct-major-eleventh"></div><div id="content"></div></div></div></div><template id="status_template"><div id="status_container" class="container"><h3>Status</h3><script></script></div></template><template id="sensors_template" onload="buildChart"><div id="sensors_container" class="container"><table id="sensor_table" class="u-full-width"><thead><tr><th>#<th>Name<th>Adress<th>Value<th>Time<th>Cnt<tbody id="sensors_table_body"></tbody><table></table></table></div></template><template id="lora_template"><div id="lora_container" class="container"><label for="dev_eui_form">Device EUI</label> <input class="u-full-width" type="text" id="dev_eui_form"> <label for="app_eui_form">App EUI</label> <input class="u-full-width" type="text" id="app_eui_form"> <label for="app_key_form">App Key</label> <input class="u-full-width" type="password" value="123456789" id="app_key_form"></div></template><script>// CONSTANTS
   const VIEWS = {
     sensors : 1,
     status: 2,
@@ -35,6 +35,10 @@
     }
   }
 
+  dateToTimeString = (value) => {
+    return new Date(value).toTimeString().split(' ')[0]
+  }
+
   handleNavButtonClick = (view_id) => {
     state = Object.assign({}, state, {
       view: view_id,
@@ -47,12 +51,18 @@
 
   buildSensorsTable = (sensors, timestamp) => {
     const timeStampNow = new Date()
+    let position = 0
     const tbody = document.createElement('tbody')
     tbody.id = 'sensors_table_body'
 
 
     for (const [name, sensor] of Object.entries(sensors)) {
       const timeStampSensor = new Date(timeStampNow.valueOf())
+      position += 1
+
+      const positionCell = document.createElement('td')
+      positionCell.innerHTML = position
+
       const nameCell = document.createElement('td')
       nameCell.innerHTML = name
 
@@ -64,7 +74,7 @@
 
       const timeCell = document.createElement('td')
       timeStampSensor.setSeconds(timeStampSensor.getSeconds() - (timestamp - sensor[2]))
-      timeCell.innerHTML = `${timeStampSensor.getHours()}:${timeStampSensor.getMinutes()}:${timeStampSensor.getSeconds()}`
+      timeCell.innerHTML = dateToTimeString(timeStampSensor.valueOf())
       timeCell.title = `${timeStampSensor.getFullYear()}-${timeStampSensor.getDate()}-${timeStampSensor.getMonth() + 1}`
 
       const cntCell = document.createElement('td')
@@ -73,6 +83,7 @@
 
 
       const row = document.createElement('tr')
+      row.appendChild(positionCell)
       row.appendChild(nameCell)
       row.appendChild(addressCell)
       row.appendChild(valueCell)
@@ -119,13 +130,13 @@
     const options = {
       axisX: {
         type: Chartist.FixedScaleAxis,
-        divisor: 1,
+        divisor: 10,
         labelInterpolationFnc: function(value) {
-          return moment(value).format('HH:MM:SS');
+          return dateToTimeString(value);
         }
       }
     }
-    return new Chartist.Line('#sensor_chart', data);
+    return new Chartist.Line('#sensor_chart', data, options);
   }
 
   updateChart = (sensors, sendTime) => {
@@ -145,6 +156,9 @@
           serie.data.push({x: sensorTime, y: entry[0]})
         }
       }
+      serie.data.sort((a,b) => {
+        return a.x - b.x
+      })
       series.push(serie)
     }
     chart.update({ series })

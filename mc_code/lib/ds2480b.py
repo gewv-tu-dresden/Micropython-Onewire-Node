@@ -11,9 +11,9 @@ from time import sleep
 
 #lokale Konstanten
 #declare konstanten DS2480b
-__RESET = const(0xC1)
-__ACK = const(0xCD)
-__PULLUP = const(0x3B)
+__RESET = const(0xC1) #193
+__ACK = const(0xCD) #205
+__PULLUP = const(0x3B) #59
 __DATAMODE = const(0xE1)
 __COMMANDMODE = const(0xE3)
 __PULLUPARM = const(0xEF)

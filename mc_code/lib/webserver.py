@@ -35,15 +35,8 @@ class Webserver():
             httpResponse.WriteResponseJSONOk(   headers = None,
                                                 obj = self.dev_state.get_state())
 
-        def httpHandlerGETChartist(httpClient, httpResponse):
-            print('Chartist is requested.')
-            httpResponse.WriteResponseFile('chartist.min.js',
-                                           contentType='application/javascript',
-                                           headers=None)
-
         self.routeHandlers = [
-            ( '/state', 'GET', httpHandlerGETState),
-            ( '/chartist.min.js', 'GET', httpHandlerGETChartist)
+            ( '/state', 'GET', httpHandlerGETState)
         ]
 
         self.mws = MicroWebSrv(

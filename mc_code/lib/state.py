@@ -29,7 +29,7 @@ class State():
         counter = self.sensors[id][3]
         self.sensors[id][4][counter] = [self.sensors[id][1], self.sensors[id][2]]
 
-        if counter == HISTORY_SIZE:
+        if counter == HISTORY_SIZE-1:
             counter = 0
         else:
             counter += 1

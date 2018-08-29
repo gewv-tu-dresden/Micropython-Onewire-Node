@@ -122,22 +122,28 @@ while True:
                 else:
                     if acq_temp >= -55.0 and acq_temp <= 125.0:
                         lpp.add_temperature(acq_temp, j)
-                        state.update_sensor(id, acq_temp)
 
+                state.update_sensor(id, acq_temp)
                 debug("{} {} 'C'".format(rom_storage, acq_temp))
 
             # error codes added to an second channel
             except CRCError:
-                lpp.add_digital_input(CRC_ERROR, j+clientno)
+                if not lpp.is_within_size_limit(2):
+                    print("Next exception overflow package size.")
+                    lpp.add_digital_input(CRC_ERROR, j+clientno)
             except NoTempError:
-                lpp.add_digital_input(NO_TEMPRATUR_MEASURED, j+clientno)
+                if not lpp.is_within_size_limit(2):
+                    print("Next exception overflow package size.")
+                    lpp.add_digital_input(NO_TEMPRATUR_MEASURED, j+clientno)
 
             except Exception as e:
                 log('--- Unknown Exception ---')
                 sys.print_exception(e)
                 log('----------------------------')
 
-                lpp.add_digital_input(UNKNOWN_ERROR, j+clientno)
+                if not lpp.is_within_size_limit(2):
+                    print("Next exception overflow package size.")
+                    lpp.add_digital_input(UNKNOWN_ERROR, j+clientno)
 
 
         print("Send temps to app server.")

@@ -77,6 +77,7 @@
     <table id="sensor_table" class="u-full-width">
       <thead>
         <tr>
+          <th>#</th>
           <th>Name</th>
           <th>Adress</th>
           <th>Value</th>
@@ -144,6 +145,10 @@
     }
   }
 
+  dateToTimeString = (value) => {
+    return new Date(value).toTimeString().split(' ')[0]
+  }
+
   handleNavButtonClick = (view_id) => {
     state = Object.assign({}, state, {
       view: view_id,
@@ -156,12 +161,18 @@
 
   buildSensorsTable = (sensors, timestamp) => {
     const timeStampNow = new Date()
+    let position = 0
     const tbody = document.createElement('tbody')
     tbody.id = 'sensors_table_body'
 
 
     for (const [name, sensor] of Object.entries(sensors)) {
       const timeStampSensor = new Date(timeStampNow.valueOf())
+      position += 1
+
+      const positionCell = document.createElement('td')
+      positionCell.innerHTML = position
+
       const nameCell = document.createElement('td')
       nameCell.innerHTML = name
 
@@ -173,7 +184,7 @@
 
       const timeCell = document.createElement('td')
       timeStampSensor.setSeconds(timeStampSensor.getSeconds() - (timestamp - sensor[2]))
-      timeCell.innerHTML = `${timeStampSensor.getHours()}:${timeStampSensor.getMinutes()}:${timeStampSensor.getSeconds()}`
+      timeCell.innerHTML = dateToTimeString(timeStampSensor.valueOf())
       timeCell.title = `${timeStampSensor.getFullYear()}-${timeStampSensor.getDate()}-${timeStampSensor.getMonth() + 1}`
 
       const cntCell = document.createElement('td')
@@ -182,6 +193,7 @@
 
 
       const row = document.createElement('tr')
+      row.appendChild(positionCell)
       row.appendChild(nameCell)
       row.appendChild(addressCell)
       row.appendChild(valueCell)
@@ -228,13 +240,13 @@
     const options = {
       axisX: {
         type: Chartist.FixedScaleAxis,
-        divisor: 1,
+        divisor: 10,
         labelInterpolationFnc: function(value) {
-          return moment(value).format('HH:MM:SS');
+          return dateToTimeString(value);
         }
       }
     }
-    return new Chartist.Line('#sensor_chart', data);
+    return new Chartist.Line('#sensor_chart', data, options);
   }
 
   updateChart = (sensors, sendTime) => {
@@ -254,6 +266,9 @@
           serie.data.push({x: sensorTime, y: entry[0]})
         }
       }
+      serie.data.sort((a,b) => {
+        return a.x - b.x
+      })
       series.push(serie)
     }
     chart.update({ series })
