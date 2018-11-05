@@ -2,6 +2,8 @@ from time import sleep
 from ds2480b import DS2480b, CRCError, NoTempError
 from machine import Pin
 from cayennelpp import CayenneLPP
+from button import Button
+
 import sys
 import pycom
 
@@ -23,8 +25,7 @@ UNKNOWN_ERROR = 3
 
 # config IO
 # myled = Pin('P2', mode=Pin.OUT) Remove this, becouse inbuild led is on P2 too
-lock_pin = Pin('P8', mode=Pin.IN, pull=Pin.PULL_UP)
-debug_pin = Pin('P23', mode=Pin.IN, pull=Pin.PULL_UP)
+case_button = Button('P8', longms=500)
 
 # helper functions
 def set_rgb_color(color):
@@ -46,10 +47,12 @@ def log(message):
     print(message)
 
 # register callback for pins
-def toggle_measuring(arg):
+def toggle_measuring():
     global MEASURE
+
     pycom.rgbled(TOGGLE_MEASURING_COLOR)
     MEASURE = not MEASURE
+
     if MEASURE:
         log('Measuring on')
         set_rgb_color(MEASURING_COLOR)
@@ -57,14 +60,13 @@ def toggle_measuring(arg):
         log('Measuring off')
         set_rgb_color(NO_MEASURING_COLOR)
 
-lock_pin.callback(Pin.IRQ_RISING, toggle_measuring)
-
-def toggle_debug(arg):
+def toggle_debug():
     global DEBUG
     global VAR
 
     pycom.rgbled(TOGGLE_DEBUG_COLOR)
     DEBUG = not DEBUG
+
     if VAR is not None:
         VAR.debug = DEBUG
 
@@ -76,9 +78,9 @@ def toggle_debug(arg):
     sleep(0.5)
     pycom.rgbled(RGBCOLOR)
 
-debug_pin.callback(Pin.IRQ_RISING, toggle_debug)
+case_button.short = toggle_measuring
+case_button.long = toggle_debug
 
-wser.start()
 log('*******************Testprogramm DS2480B************************')
 VAR = DS2480b(debug=DEBUG, temperature=-300)
 
