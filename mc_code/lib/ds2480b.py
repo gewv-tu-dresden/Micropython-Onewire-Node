@@ -43,7 +43,7 @@ class DS2480b(object):
 
 #variabeln der Klasse --> oeffentlich
     def __init__(self, TEMPERATURE=0, DS1920NO=0, DS1920FIRST=0, DS19B20NO=0,
-    DS19B20FIRST=0, ROMSTORAGE=[None]*100, INTERFACE="", DEBUG=0):
+    DS19B20FIRST=0, ROMSTORAGE=[None]*1024, INTERFACE="", DEBUG=0, RESETFLAG=1):
         """init der methoden variabeln"""
         self.temperature = TEMPERATURE
         self.ds1920no = DS1920NO
@@ -53,12 +53,13 @@ class DS2480b(object):
         self.romstorage = ROMSTORAGE
         self.interface = INTERFACE
         self.debug = DEBUG
+        self.resetflag = RESETFLAG
 #******************RS232 Routinen***********************************************
     def interfacereset(self):
         """reset interface"""
         print ("Err OneWireBus --> Reset Interface")
         self.interface.deinit()
-        self.interface.init()
+        self.initrs232(1)
         self.portwrite(self.__RESET)
     def initrs232(self, port='1', baud=9600):
         """Init RS232"""
@@ -96,8 +97,8 @@ class DS2480b(object):
             self.portwrite(self.__DATAMODE)
     def portwrite(self, value=0):
         """write data"""
-        #if self.debug == 1:
-        #    print "debug value write:" + hex(value)
+        if self.debug == 1:
+            print ("debug value write:" + hex(value))
         self.interface.write(bytearray([value]))
         if self._iscmdmode == 1:
             #return chr if cmd mode
@@ -134,10 +135,15 @@ class DS2480b(object):
         self.commandmode()
         char = self.portwrite(self.__RESET)
         if char == self.__ACK:
-            return 1
+            self.resetflag = 1
+            return self.resetflag
         else:
+            print (hex(char))
+            self.resetflag = 0
+            self.datamode()
+            self.readbit()
             self.interfacereset()
-            return 0
+            return self.resetflag
     def resetsearch(self, clearrom=0):
         """reset the search state"""
         self._lastdiscrepancy = 0
@@ -263,6 +269,9 @@ class DS2480b(object):
             if self.crc8(self.newromno) == 0:
                 self.romstorage[i] = deepcopy(self.newromno)
                 i += 1
+                if i == len(self.romstorage):
+                    print ("max. Anzahl OneWire Clients")
+                    break
             else:
                 if self.debug == 1:
                     print ("ERR CRC8 Test")
@@ -334,7 +343,8 @@ class DS2480b(object):
                 self.portwrite(0xff)
                 sleep(0.005)
                 scratchpad[i] = self.getchrrs232()
-                #print (hex(scratchpad[i])+" ", end="")
+                if self.debug == 1:
+                    print (hex(scratchpad[i])+" ", end="")
             self.commandmode()
             self.reset()
             if self.crc8(scratchpad) != 0:
