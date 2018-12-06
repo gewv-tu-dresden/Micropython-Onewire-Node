@@ -18,14 +18,21 @@ RGBCOLOR = 0x007f00
 RGBOFF = 0x050505
 
 # error codes
-NO_TEMPRATUR_MEASURED = 0
-UART_ERROR = 1
-CRC_ERROR = 2
-UNKNOWN_ERROR = 3
+NO_TEMPRATUR_MEASURED = -310
+UART_ERROR = -300
+CRC_ERROR = -290
+UNKNOWN_ERROR = -280
 
 # config IO
 # myled = Pin('P2', mode=Pin.OUT) Remove this, becouse inbuild led is on P2 too
 case_button = Button('P8', longms=500)
+
+def debug(message):
+    if DEBUG:
+        print(message)
+
+def log(message):
+    print(message)
 
 # helper functions
 def set_rgb_color(color):
@@ -38,7 +45,7 @@ if 'exclude.dat' in os.listdir():
     #laden der datei und in ein sep. Array speichern
     f = open('exclude.dat',"r")
     exclude = f.read()
-    print ('{} ausgeschlossene Sensoren'.format(exclude))
+    log('{} ausgeschlossene Sensoren'.format(exclude))
     exclude = exclude.split(';')
     f.close()
 else:
@@ -46,7 +53,7 @@ else:
     f = open('exclude.dat', 'w')
     exclude = ("-1;")
     f.write(exclude)
-    print ("init file 'exclude.dat'@"+exclude)
+    debug("init file 'exclude.dat'@"+exclude)
     exclude = exclude.split(";")
     f.close()
 
@@ -54,21 +61,13 @@ def printid(array):
     "print sensor id in hex"
     i = 0
     for i in range(0, len(array)):
-        print(hex(array[i]))
+        log(hex(array[i]))
 
 def senditems():
     "send temps"
-    print("Send temps to app server.")
-    print("Payloadsize: {}".format(lpp.get_size()))
+    log("Send temps to app server.")
+    debug("Payloadsize: {}".format(lpp.get_size()))
     lpp.send(reset_payload=True)
-
-
-def debug(message):
-    if DEBUG:
-        print(message)
-
-def log(message):
-    print(message)
 
 # register callback for pins
 def toggle_measuring():
@@ -140,7 +139,7 @@ while True:
         if (VAR.ds19b20no == 0 and VAR.ds1920no == 0):
             VAR.getallid()
 
-        print("Abfrage " + str(i) + ": ")
+        log("Abfrage " + str(i) + ": ")
         VAR.converttemp()
 
         for j in range(0, VAR.num_devices-1):
@@ -172,7 +171,8 @@ while True:
                     debug("{} {} 'C'".format(rom_storage, acq_temp))
 
                     if not lpp.is_within_size_limit(2):
-                        log("Next sensor overflow package size.")
+                        senditems()
+                        debug("Next sensor overflow package size.")
                     else:
                         if acq_temp >= -55.0 and acq_temp <= 125.0:
                             lpp.add_temperature(acq_temp, j)
@@ -180,15 +180,16 @@ while True:
             # error codes added to an second channel
             except CRCError:
                 if not lpp.is_within_size_limit(2):
-                    print("Next exception overflow package size.")
+                    senditems()
+                    debug("Next exception overflow package size.")
                 else:
-                    lpp.add_digital_input(CRC_ERROR, j+VAR.num_devices)
+                    lpp.add_temperature(CRC_ERROR, j)
             except NoTempError:
                 if not lpp.is_within_size_limit(2):
                     senditems()
                     debug("Next exception overflow package size.")
                 else:
-                    lpp.add_digital_input(NO_TEMPRATUR_MEASURED, j+VAR.num_devices)
+                    lpp.add_temperature(NO_TEMPRATUR_MEASURED, j)
 
             except Exception as e:
                 log('--- Unknown Exception ---')
@@ -197,9 +198,9 @@ while True:
 
                 if not lpp.is_within_size_limit(2):
                     senditems()
-                    print("Next exception overflow package size.")
+                    debug("Next exception overflow package size.")
                 else:
-                    lpp.add_digital_input(UNKNOWN_ERROR, j+VAR.num_devices)
+                    lpp.add_temperature(UNKNOWN_ERROR, j)
 
         
         # send the data after read all
