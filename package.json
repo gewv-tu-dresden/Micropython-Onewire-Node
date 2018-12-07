@@ -1,0 +1,17 @@
+{
+  "name": "lopy_node",
+  "version": "0.1.0",
+  "description": "Code for the lopy to send per Sensor Data per Lora and Wlan.",
+  "main": "mc_code/boot.py",
+  "repository": "git@gitlab.hrz.tu-chemnitz.de:TUD-IEEH-GEWV/onewire_node.git",
+  "author": "Karl Wolffgang <karl_eugen.wolffgang@tu-dresden.de>",
+  "license": "MIT",
+  "scripts": {
+    "minify": "node_modules/.bin/html-minifier --input-dir www_unpacked --output-dir mc_code/www --file-ext html -c html_minify.json && node_modules/.bin/postcss www_unpacked/css/*.css --dir mc_code/www/css"
+  },
+  "devDependencies": {
+    "cssnano": "^4.0.5",
+    "html-minifier": "^3.5.19",
+    "postcss-cli": "^6.0.0"
+  }
+}

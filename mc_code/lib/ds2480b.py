@@ -9,31 +9,32 @@ from copy import deepcopy
 from binascii import unhexlify
 from time import sleep
 
-class DS2480b(object):
+#lokale Konstanten
+#declare konstanten DS2480b
+__RESET = const(0xC1) #193
+__ACK = const(0xCD) #205
+__PULLUP = const(0x3B) #59
+__DATAMODE = const(0xE1)
+__COMMANDMODE = const(0xE3)
+__PULLUPARM = const(0xEF)
+__PULLUPDISARM = const(0xED)
+__PULSETERMINATE = const(0xF1)
+__SEARCHROM = const(0xF0)
+__ACCELERATORON = const(0xB1)
+__ACCELERATOROFF = const(0xA1)
+#declare konstanten DS1820
+__CONVERTT = const(0x44)
+__READ = const(0xBE)
+__SKIPROM = const(0xCC)
+__MATCHROM = const(0x55)
+
+
+class DS2480b():
     """one wire master DS2480b Abfrage
     getestet mit Firmware LoPy4-1.18.0"""
-    #lokale Konstanten
-    #declare konstanten DS2480b
-    #Test
-    __ACK = 0xCD
-    __RESET = 0xC1
-    __PULLUP = 0x3B
-    __DATAMODE = 0xE1
-    __COMMANDMODE = 0xE3
-    __PULLUPARM = 0xEF
-    __PULLUPDISARM = 0xED
-    __PULSETERMINATE = 0xF1
-    __PULLUPDISARM = 0xED
-    __SEARCHROM = 0xF0
-    __ACCELERATORON = 0xB1
-    __ACCELERATOROFF = 0xA1
-    #declare konstanten DS1820
-    __CONVERTT = 0x44
-    __READ = 0xBE
-    __SKIPROM = 0xCC
-    __MATCHROM = 0x55
+
     #delacre variabeln fuer die Klasse
-    _iscmdmode = 0
+    _iscmdmode = False
 
     #search state
     _lastdiscrepancy = 0
@@ -41,44 +42,57 @@ class DS2480b(object):
     _lastfamilydiscrepancy = 0
     newromno = [0]*8
 
-#variabeln der Klasse --> oeffentlich
-    def __init__(self, TEMPERATURE=0, DS1920NO=0, DS1920FIRST=0, DS19B20NO=0,
-    DS19B20FIRST=0, ROMSTORAGE=[None]*1024, INTERFACE="", DEBUG=0, RESETFLAG=1):
+    #variabeln der Klasse --> oeffentlich
+    def __init__(self, temperature=0, ds1920no=0, ds1920first=0, ds19b20no=0,
+    ds19b20first=0, rom_storage=[None]*100, debug=False):
         """init der methoden variabeln"""
-        self.temperature = TEMPERATURE
-        self.ds1920no = DS1920NO
-        self.ds1920first = DS1920FIRST
-        self.ds19b20no = DS19B20NO
-        self.ds19b20first = DS19B20FIRST
-        self.romstorage = ROMSTORAGE
-        self.interface = INTERFACE
-        self.debug = DEBUG
-        self.resetflag = RESETFLAG
+        self.temperature = temperature
+        self.ds1920no = ds1920no
+        self.ds1920first = ds1920first
+        self.ds19b20no = ds19b20no
+        self.ds19b20first = ds19b20first
+        self.romstorage = rom_storage
+        self.debug = debug
+
+        self.interface = None
+        self.interface_port = 1
+        self.interface_baud = 9600
+
+        self.num_devices = 0
 #******************RS232 Routinen***********************************************
+
     def interfacereset(self):
         """reset interface"""
         print ("Err OneWireBus --> Reset Interface")
-        self.interface.deinit()
-        self.initrs232(1)
-        self.portwrite(self.__RESET)
-    def initrs232(self, port='1', baud=9600):
+        self.closers232()
+        self.initrs232()
+        res = self.portwrite(__RESET)
+        print("Reset interface. Response from chip: {}".format(res))
+
+    def set232parameter(self, port=1, baud=9600):
+        self.interface_port = port
+        self.interface_baud = baud
+
+    def initrs232(self):
         """Init RS232"""
-        self.interface = UART(port, 9600)
-        self.interface.init(baud, bits=8, parity=None, stop=1)
+        self.interface = UART(self.interface_port, self.interface_baud)
+
     def closers232(self):
         """port schliessen"""
         self.interface.deinit()
         print ("UART close")
+
     def getchrrs232(self):
         """Rx char"""
         result = self.interface.read(1)
         if result != None:
-            if self.debug == 1:
+            if self.debug:
                 print ("debug ASCII in: ", end="")
                 print (result + " hex:" + hex(ord(result)))
             return ord(result)
         else:
             return 0
+
     def flushrs232(self):
         """clear input buffer"""
         self.interface.readall()
@@ -86,29 +100,33 @@ class DS2480b(object):
 #*********************DS2480B Routinen******************************************
     def commandmode(self):
         """check commandmode"""
-        if self._iscmdmode == 0:
+        if not self._iscmdmode:
             self._iscmdmode = True
-            self.portwrite(self.__COMMANDMODE)
+            self.portwrite(__COMMANDMODE)
             return self.getchrrs232()
+
     def datamode(self):
         """check datamode"""
-        if self._iscmdmode == 1:
+        if self._iscmdmode:
             self._iscmdmode = False
-            self.portwrite(self.__DATAMODE)
+            self.portwrite(__DATAMODE)
+
     def portwrite(self, value=0):
         """write data"""
-        if self.debug == 1:
-            print ("debug value write:" + hex(value))
+        if self.debug:
+            print("debug value write: {}".format(hex(value)))
+
         self.interface.write(bytearray([value]))
-        if self._iscmdmode == 1:
+        if self._iscmdmode:
             #return chr if cmd mode
             sleep(0.010)
             return self.getchrrs232()
+
     def writebit(self, value=0, waitforreply=1):
         """Write a bit - actually returns the bit read back in case you care."""
         getchr = 0
         self.commandmode()
-        #if self.debug == 1:
+        #if self.debug:
         #    print "writebit: " + bin(value)
         if value == 1:
             getchr = self.portwrite(0x91) #write a single "on" bit to onewire
@@ -116,34 +134,37 @@ class DS2480b(object):
             getchr = self.portwrite(0x81) #write a single "off" bit to onewire
         if waitforreply == 1:
             return getchr & 1
+
     def readbit(self):
         """Read a bit - short hand for writing a 1 and seeing what we get back."""
         return self.writebit(1)
+
     def writemode(self, value=0):
         """Tx UART value without return from DS2480b"""
-        if self.debug == 1:
+        if self.debug:
             print ("debug value write:" + hex(value))
         self.interface.write([value])
+
     def writecommand(self, value=0):
         """Tx UART value with return from DS2480b"""
         self.commandmode()
         self.interface.write([value])
         result = self.getchrrs232()
         return result
+
     def reset(self):
         """reset one wire bus"""
         self.commandmode()
-        char = self.portwrite(self.__RESET)
-        if char == self.__ACK:
-            self.resetflag = 1
-            return self.resetflag
+        char = self.portwrite(__RESET)
+        if self.debug:
+            print("Reset initialize. Answer from device: {}".format(char))
+
+        if char == __ACK:
+            return True
         else:
-            print (hex(char))
-            self.resetflag = 0
-            self.datamode()
-            self.readbit()
             self.interfacereset()
-            return self.resetflag
+            return False
+
     def resetsearch(self, clearrom=0):
         """reset the search state"""
         self._lastdiscrepancy = 0
@@ -151,22 +172,23 @@ class DS2480b(object):
         self._lastfamilydiscrepancy = 0
         if clearrom == 1:
             self.newromno = [0]*8
+
     def search(self):
         """
-// Perform a search. If this function returns a '1' then it has
-// enumerated the next device and you may retrieve the ROM from the
-// DS2480B::address variable. If there are no devices, no further
-// devices, or something horrible happens in the middle of the
-// enumeration then a 0 is returned.  If a new device is found then
-// its address is copied to newAddr.  Use DS2480B::reset_search() to
-// start over.
-//
-// --- Replaced by the one from the Dallas Semiconductor web site ---
-//--------------------------------------------------------------------------
-// Perform the 1-Wire Search Algorithm on the 1-Wire bus using the existing
-// search state.
-// Return TRUE  : device found, ROM number in ROM_NO buffer
-//        FALSE : device not found, end of search
+        // Perform a search. If this function returns a '1' then it has
+        // enumerated the next device and you may retrieve the ROM from the
+        // DS2480B::address variable. If there are no devices, no further
+        // devices, or something horrible happens in the middle of the
+        // enumeration then a 0 is returned.  If a new device is found then
+        // its address is copied to newAddr.  Use DS2480B::reset_search() to
+        // start over.
+        //
+        // --- Replaced by the one from the Dallas Semiconductor web site ---
+        //--------------------------------------------------------------------------
+        // Perform the 1-Wire Search Algorithm on the 1-Wire bus using the existing
+        // search state.
+        // Return TRUE  : device found, ROM number in ROM_NO buffer
+        //        FALSE : device not found, end of search
         """
         ##initialize for search
         id_bit_number = 1
@@ -179,21 +201,21 @@ class DS2480b(object):
         cmp_id_bit = False
         search_direction = False
 
-        if self.debug == 1:
+        if self.debug:
             print ("search allgorithm")
         #if the last call was not the last one
-        if self._lastdeviceflag == 0:
-            if self.reset() == 0:
+        if not self._lastdeviceflag:
+            if not self.reset():
                 self.resetsearch()
                 return False
             self.datamode()
-            self.portwrite(self.__SEARCHROM)
+            self.portwrite(__SEARCHROM)
             self.getchrrs232()
             while True:
                 #read a bit and its complement
                 id_bit = self.readbit()
                 cmp_id_bit = self.readbit()
-                #if self.debug == 1:
+                #if self.debug:
                     #print "####bit read: " + bin(id_bit) +" comp: "+ bin(cmp_id_bit)
                 #check for no devices on 1-wire
                 if (id_bit == 1)and(cmp_id_bit == 1):
@@ -253,9 +275,9 @@ class DS2480b(object):
         else:
             for i in range(0, 8):
             #newAddr[i] = self.newromno[i]
-                if self.debug == 1:
+                if self.debug:
                     print (hex(self.newromno[i])+" ", end='')
-            if self.debug == 1:
+            if self.debug:
                 print (" ")
         return search_result
 
@@ -269,13 +291,10 @@ class DS2480b(object):
             if self.crc8(self.newromno) == 0:
                 self.romstorage[i] = deepcopy(self.newromno)
                 i += 1
-                if i == len(self.romstorage):
-                    print ("max. Anzahl OneWire Clients")
-                    break
             else:
-                if self.debug == 1:
+                if self.debug:
                     print ("ERR CRC8 Test")
-        if self.debug == 1:
+        if self.debug:
             i = 0
             print (" ")
             while self.romstorage[i] != None:
@@ -305,67 +324,73 @@ class DS2480b(object):
         """DS1820 Temp.messung anstossen"""
         result = 0
         self.commandmode()
-        self.portwrite(self.__PULLUP)
-        if self.reset() == 1:
+        self.portwrite(__PULLUP)
+        if self.reset():
             self.datamode()
-            self.portwrite(self.__SKIPROM)
+            self.portwrite(__SKIPROM)
             self.commandmode()
-            self.portwrite(self.__PULLUPARM)
-            self.portwrite(self.__PULSETERMINATE)
+            self.portwrite(__PULLUPARM)
+            self.portwrite(__PULSETERMINATE)
             self.datamode()
-            self.portwrite(self.__CONVERTT)
+            self.portwrite(__CONVERTT)
             self.getchrrs232()
             self.commandmode()
-            self.portwrite(self.__PULLUPDISARM)
-            self.portwrite(self.__PULSETERMINATE)
+            self.portwrite(__PULLUPDISARM)
+            self.portwrite(__PULSETERMINATE)
             self.getchrrs232()
             self.reset()
         return result
+
     def acquiretemp(self, adress):
         """DS1820 aktuelle Temperatur abfragen"""
         scratchpad = [None]*9
-        if self.debug == 1:
+        if self.debug:
             print ("gettemp")
         self.commandmode()
-        if self.reset() == 1:
-            self.datamode()
-            self.portwrite(self.__MATCHROM)
-            self.getchrrs232()
-            for i in range(0, 8):
-                self.portwrite(self.romstorage[adress][i])
-                #print (hex(self.romstorage[adress][i])+" ", end="")
-                if self.debug == 1:
-                    print (hex(self.romstorage[adress][i]), end='')
-            self.portwrite(self.__READ)
+
+        if not self.reset():
+            print("Err Measured no Temperatur")
+            raise NoTempError()
+
+        self.datamode()
+        self.portwrite(__MATCHROM)
+        self.getchrrs232()
+        for i in range(0, 8):
+            self.portwrite(self.romstorage[adress][i])
+            #print (hex(self.romstorage[adress][i])+" ", end="")
+            if self.debug:
+                print (hex(self.romstorage[adress][i]), end='')
+        self.portwrite(__READ)
+        sleep(0.005)
+        self.flushrs232()
+        for i in range(9):
+            self.portwrite(0xff)
             sleep(0.005)
-            self.flushrs232()
-            for i in range(9):
-                self.portwrite(0xff)
-                sleep(0.005)
-                scratchpad[i] = self.getchrrs232()
-                if self.debug == 1:
-                    print (hex(scratchpad[i])+" ", end="")
-            self.commandmode()
-            self.reset()
-            if self.crc8(scratchpad) != 0:
-                self.temperature = 9999.999
-                print ("Err CRC")
-                return self.temperature
-            #calculate temperatur
-            #ds1820
-            if self.romstorage[adress][0] == 0x10:
-                integer = 0
-                for i in range(1, -1, -1):
-                    integer = integer * 256 + scratchpad[i]
-                integer = integer / 2
-                self.temperature = ((scratchpad[7] - scratchpad[6]) / scratchpad[7]) + integer - 0.25
-            #ds18b20
-            if self.romstorage[adress][0] == 0x28:
-                integer = 0
-                for i in range(1, -1, -1):
-                    integer = integer * 256 + scratchpad[i]
-                self.temperature = (integer * 25.0) / 400.0
+            scratchpad[i] = self.getchrrs232()
+            #print (hex(scratchpad[i])+" ", end="")
+        self.commandmode()
+        self.reset()
+        if self.crc8(scratchpad) != 0:
+            self.temperature = 9999.999
+            print ("Err CRC")
+            raise CRCError()
+        #calculate temperatur
+        #ds1820
+        if self.romstorage[adress][0] == 0x10:
+            integer = 0
+            for i in range(1, -1, -1):
+                integer = integer * 256 + scratchpad[i]
+            integer = integer / 2
+            self.temperature = ((scratchpad[7] - scratchpad[6]) / scratchpad[7]) + integer - 0.25
+        #ds18b20
+        if self.romstorage[adress][0] == 0x28:
+            integer = 0
+            for i in range(1, -1, -1):
+                integer = integer * 256 + scratchpad[i]
+            self.temperature = (integer * 25.0) / 400.0
+
         return self.temperature
+
     def checkdevices(self):
         """count onewire slaves"""
         devices = 0
@@ -374,7 +399,7 @@ class DS2480b(object):
         self.ds1920first = 0
         self.ds19b20no = 0
         self.ds19b20first = 0
-        if self.debug == 1:
+        if self.debug:
             print ("get sensor type")
         for i in range(0, len(self.romstorage)):
             devices += 1
@@ -383,18 +408,33 @@ class DS2480b(object):
                 break
             #mask of lsb
             kind = self.romstorage[i][0]
-            if self.debug == 1:
+            if self.debug:
                 print ("kind:" + hex(kind))
             if kind == 0x10:
                 if self.ds1920no == 0:
                     self.ds1920first = i
-                    if self.debug == 1:
+                    if self.debug:
                         print ("first ds1920:" + hex(i))
                 self.ds1920no += 1
             if kind == 0x28:
                 if self.ds19b20no == 0:
                     self.ds19b20first = i
-                    if self.debug == 1:
+                    if self.debug:
                         print ("first ds19b20:" + hex(i))
                 self.ds19b20no += 1
+
+        self.num_devices = devices
         return devices
+
+    def update_state(self, state):
+        for rom in self.romstorage:
+            if rom is not None:
+                name = " ".join(map(hex, rom))
+                id = "".join(map(str, rom))
+                state.add_sensor(id, name)
+
+class CRCError(Exception):
+    pass
+
+class NoTempError(Exception):
+    pass

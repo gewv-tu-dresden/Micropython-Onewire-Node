@@ -1,0 +1,9 @@
+{
+  "removeComments": true,
+  "collapseBooleanAttributes": true,
+  "collapseWhitespace": true,
+  "removeEmptyAttributes": true,
+  "removeOptionalTags": true,
+  "removeEmptyElements": false,
+  "minifyJS": true
+}
