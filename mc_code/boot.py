@@ -29,7 +29,7 @@ os.dupterm(uart)
 lora = LoRa(mode=LoRa.LORAWAN, region=LoRa.EU868)
 
 # Initialize watchdog
-wdt = WDT(timeout=60000)
+wdt = WDT(timeout=1500000)
 
 # Initialize Webserver
 wser = Webserver(dev_state=state)

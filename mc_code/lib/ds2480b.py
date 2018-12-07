@@ -8,6 +8,7 @@ from machine import UART
 from copy import deepcopy
 from binascii import unhexlify
 from time import sleep
+import machine
 
 class DS2480b(object):
     """one wire master DS2480b Abfrage
@@ -70,7 +71,6 @@ class DS2480b(object):
         """Init RS232"""
         self.interface = UART(port, baud)
         self.interface.init(baud, bits=8, parity=None, stop=1)
-
 
     def closers232(self):
         """port schliessen"""
@@ -152,15 +152,15 @@ class DS2480b(object):
         self.commandmode()
         char = self.portwrite(self.__RESET)
         if char == self.__ACK:
-            self.resetflag = True
-            return self.resetflag
+            self.resetflag = 0
+            return 1
         else:
             print (hex(char))
-            self.resetflag = False
+            self.resetflag = 1
             self.datamode()
             self.readbit()
             self.interfacereset()
-            return self.resetflag
+            return 0
 
     def resetsearch(self, clearrom=0):
         """reset the search state"""
@@ -287,6 +287,7 @@ class DS2480b(object):
                 break
             if self.crc8(self.newromno) == 0:
                 self.romstorage[i] = deepcopy(self.newromno)
+                print ("No. {} ID:{}".format(i, self.romstorage[i]))
                 i += 1
 
                 if i == len(self.romstorage):
@@ -435,4 +436,7 @@ class DS2480b(object):
                 state.add_sensor(id, name)
 
 class CRCError(Exception):
+    pass
+
+class NoTempError(Exception):
     pass

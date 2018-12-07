@@ -1,5 +1,5 @@
 from time import sleep
-from ds2480b import DS2480b, CRCError
+from ds2480b import DS2480b, CRCError ,NoTempError
 from machine import Pin
 from cayennelpp import CayenneLPP
 from button import Button
@@ -18,6 +18,7 @@ RGBCOLOR = 0x007f00
 RGBOFF = 0x050505
 
 # error codes
+NO_TEMP_ERROR = -320
 NO_TEMPRATUR_MEASURED = -310
 UART_ERROR = -300
 CRC_ERROR = -290
@@ -28,14 +29,17 @@ UNKNOWN_ERROR = -280
 case_button = Button('P8', longms=500)
 
 def debug(message):
+    "print message if debug == 1"
     if DEBUG:
         print(message)
 
 def log(message):
+    """message to terminal"""
     print(message)
 
 # helper functions
 def set_rgb_color(color):
+    """change local led colour"""
     pycom.rgbled(color)
     global RGBCOLOR
     RGBCOLOR = color
@@ -111,7 +115,7 @@ VAR.initrs232(1)
 # Connect state with onewire interface
 state.onewire_interface = VAR
 
-log("search... please wait... ;-)"")
+log("search... please wait... ;-)")
 VAR.getallid()
 VAR.update_state(state)
 
@@ -126,6 +130,7 @@ riegel = True
 turns = 0
 i = 0
 err_count = [0]*len(VAR.romstorage)
+DEBUG = 1
 
 while True:
     pycom.rgbled(RGBCOLOR)
@@ -137,14 +142,18 @@ while True:
         i+=1
 
         if (VAR.ds19b20no == 0 and VAR.ds1920no == 0):
+            #wdt.init(1000000)
+            wdt.feed()
+            #ggf. wdt.deinit() ?
             VAR.getallid()
+            #wdt.init(60000)
 
         log("Abfrage " + str(i) + ": ")
         VAR.converttemp()
 
-        for j in range(0, VAR.num_devices-1):
+        for j in range(0, VAR.ds19b20no + VAR.ds1920no-1):
             if (str(j) in exclude):
-                debug("Fehlerhaften Sensor No.{} übersprungen."format(j+1))
+                log("Fehlerhaften Sensor No.{} uebersprungen.".format(j+1))
                 continue
 
             try:
@@ -202,7 +211,7 @@ while True:
                 else:
                     lpp.add_temperature(UNKNOWN_ERROR, j)
 
-        
+
         # send the data after read all
         if lpp.get_size():
             senditems()
