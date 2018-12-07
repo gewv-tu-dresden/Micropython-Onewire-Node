@@ -1,9 +1,9 @@
 from time import sleep
-from ds2480b import DS2480b, CRCError, NoTempError
+from ds2480b import DS2480b, CRCError
 from machine import Pin
 from cayennelpp import CayenneLPP
 from button import Button
-
+import machine
 import sys
 import pycom
 
@@ -18,26 +18,14 @@ RGBCOLOR = 0x007f00
 RGBOFF = 0x050505
 
 # error codes
-NO_TEMPRATUR_MEASURED = 0
-UART_ERROR = 1
-CRC_ERROR = 2
-UNKNOWN_ERROR = 3
+NO_TEMPRATUR_MEASURED = -310
+UART_ERROR = -300
+CRC_ERROR = -290
+UNKNOWN_ERROR = -280
 
 # config IO
 # myled = Pin('P2', mode=Pin.OUT) Remove this, becouse inbuild led is on P2 too
 case_button = Button('P8', longms=500)
-
-# helper functions
-def set_rgb_color(color):
-    pycom.rgbled(color)
-    global RGBCOLOR
-    RGBCOLOR = color
-
-def printid(array):
-    "print sensor id in hex"
-    i = 0
-    for i in range(0, len(array)):
-        print(hex(array[i]))
 
 def debug(message):
     if DEBUG:
@@ -45,6 +33,41 @@ def debug(message):
 
 def log(message):
     print(message)
+
+# helper functions
+def set_rgb_color(color):
+    pycom.rgbled(color)
+    global RGBCOLOR
+    RGBCOLOR = color
+
+#prüfen ob exclude.dat auf dem lopy4 vorhanden ist
+if 'exclude.dat' in os.listdir():
+    #laden der datei und in ein sep. Array speichern
+    f = open('exclude.dat',"r")
+    exclude = f.read()
+    log('{} ausgeschlossene Sensoren'.format(exclude))
+    exclude = exclude.split(';')
+    f.close()
+else:
+    #erzeugen der datei
+    f = open('exclude.dat', 'w')
+    exclude = ("-1;")
+    f.write(exclude)
+    debug("init file 'exclude.dat'@"+exclude)
+    exclude = exclude.split(";")
+    f.close()
+
+def printid(array):
+    "print sensor id in hex"
+    i = 0
+    for i in range(0, len(array)):
+        log(hex(array[i]))
+
+def senditems():
+    "send temps"
+    log("Send temps to app server.")
+    debug("Payloadsize: {}".format(lpp.get_size()))
+    lpp.send(reset_payload=True)
 
 # register callback for pins
 def toggle_measuring():
@@ -82,18 +105,18 @@ case_button.short = toggle_measuring
 case_button.long = toggle_debug
 
 log('*******************Testprogramm DS2480B************************')
-VAR = DS2480b(debug=DEBUG, temperature=-300)
+VAR = DS2480b(debug=DEBUG)
+VAR.initrs232(1)
 
 # Connect state with onewire interface
 state.onewire_interface = VAR
 
-VAR.set232parameter(port=1)
-VAR.initrs232()
-
-log("search...")
+log("search... please wait... ;-)"")
 VAR.getallid()
-VAR.checkdevices()
 VAR.update_state(state)
+
+clientno = VAR.checkdevices()
+log("find {}x DS19B20 Sensor and {}x DS1920 Sensor".format(VAR.ds19b20no, VAR.ds1920no))
 
 log("initialize cayennelpp")
 lpp = CayenneLPP(size=51, sock=s)
@@ -102,42 +125,71 @@ go = True
 riegel = True
 turns = 0
 i = 0
+err_count = [0]*len(VAR.romstorage)
 
 while True:
     pycom.rgbled(RGBCOLOR)
 
-    if MEASURE:
+    # only every 30 reads a package should send
+    sendThisTurn = 0
 
+    if MEASURE:
         i+=1
+
+        if (VAR.ds19b20no == 0 and VAR.ds1920no == 0):
+            VAR.getallid()
+
+        log("Abfrage " + str(i) + ": ")
         VAR.converttemp()
-        print("Abfrage " + str(i) + ": ")
-        sleep(1.8)
+
         for j in range(0, VAR.num_devices-1):
+            if (str(j) in exclude):
+                debug("Fehlerhaften Sensor No.{} übersprungen."format(j+1))
+                continue
+
             try:
                 rom_storage = VAR.romstorage[j]
                 acq_temp = VAR.acquiretemp(j)
                 id = "".join(map(str, rom_storage))
 
-                if not lpp.is_within_size_limit(2):
-                    print("Next sensor overflow package size.")
+                #Anpassung onewire Ring --> defekte Sensoren???
+                if VAR.resetflag:
+                    err_count[j] = err_count[j] + 1
+                    log('Sensor No. {} --> Reset Err {}'.format(j+1,err_count[j]))
+                    if err_count[j] == 5:
+                        log("Err No.{} TempSensor: {}".format(j+1, rom_storage))
+                        f = open("exclude.dat", "a+")
+                        f.write(str(j)+";")
+                        f.close()
+                        machine.reset()
                 else:
-                    if acq_temp >= -55.0 and acq_temp <= 125.0:
-                        lpp.add_temperature(acq_temp, j)
+                    err_count[j] = 0
+                    lpp.add_temperature(acq_temp, j)
 
-                state.update_sensor(id, acq_temp)
-                debug("{} {} 'C'".format(rom_storage, acq_temp))
+                    # update the state
+                    state.update_sensor(id, acq_temp)
+                    debug("{} {} 'C'".format(rom_storage, acq_temp))
+
+                    if not lpp.is_within_size_limit(2):
+                        senditems()
+                        debug("Next sensor overflow package size.")
+                    else:
+                        if acq_temp >= -55.0 and acq_temp <= 125.0:
+                            lpp.add_temperature(acq_temp, j)
 
             # error codes added to an second channel
             except CRCError:
                 if not lpp.is_within_size_limit(2):
-                    print("Next exception overflow package size.")
+                    senditems()
+                    debug("Next exception overflow package size.")
                 else:
-                    lpp.add_digital_input(CRC_ERROR, j+VAR.num_devices)
+                    lpp.add_temperature(CRC_ERROR, j)
             except NoTempError:
                 if not lpp.is_within_size_limit(2):
-                    print("Next exception overflow package size.")
+                    senditems()
+                    debug("Next exception overflow package size.")
                 else:
-                    lpp.add_digital_input(NO_TEMPRATUR_MEASURED, j+VAR.num_devices)
+                    lpp.add_temperature(NO_TEMPRATUR_MEASURED, j)
 
             except Exception as e:
                 log('--- Unknown Exception ---')
@@ -145,17 +197,18 @@ while True:
                 log('----------------------------')
 
                 if not lpp.is_within_size_limit(2):
-                    print("Next exception overflow package size.")
+                    senditems()
+                    debug("Next exception overflow package size.")
                 else:
-                    lpp.add_digital_input(UNKNOWN_ERROR, j+VAR.num_devices)
+                    lpp.add_temperature(UNKNOWN_ERROR, j)
 
-
-        print("Send temps to app server.")
-        print("Payloadsize: {}".format(lpp.get_size()))
-        lpp.send(reset_payload=True)
+        
+        # send the data after read all
+        if lpp.get_size():
+            senditems()
 
     pycom.rgbled(RGBOFF)
-    # wdt.feed()
+    wdt.feed()
     debug('Feed the watchdog.')
     sleep(10)
 
