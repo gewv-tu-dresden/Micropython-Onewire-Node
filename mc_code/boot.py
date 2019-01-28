@@ -18,12 +18,16 @@ state = State()
 state.app_eui = '70B3D57ED00109EF'
 
 # Node_1
-state.dev_eui = 'b2e40001a1c9e416'
-state.app_key = 'a46e0811cefd73d0918bfa657ba609f3'
+# state.dev_eui = 'b2e40001a1c9e416'
+# state.app_key = 'a46e0811cefd73d0918bfa657ba609f3'
 
 # Node_2
 # state.dev_eui = '71d2876cc82fb5c8'
 # state.app_key = 'f34cf462b6a23f3dd7b9bbbdf0f33a39'
+
+# Node 3
+state.dev_eui = 'dd1115cda077f628'
+state.app_key = '164eb0f51f7f48e385b71bb2d827faaf'
 
 ###  Initialize ###
 

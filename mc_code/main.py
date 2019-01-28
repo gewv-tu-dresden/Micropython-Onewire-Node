@@ -137,9 +137,6 @@ while True:
     debug("start new turn")
     pycom.rgbled(RGBCOLOR)
 
-    # only every 30 reads a package should send
-    sendThisTurn = 0
-
     if MEASURE:
         i+=1
 
@@ -150,7 +147,7 @@ while True:
         log("Abfrage " + str(i) + ": ")
         VAR.converttemp()
 
-        for j in range(0, VAR.ds19b20no + VAR.ds1920no-1):
+        for j in range(0, VAR.ds19b20no + VAR.ds1920no):
             if (str(j) in exclude):
                 log("Fehlerhaften Sensor No.{} uebersprungen.".format(j+1))
                 continue
@@ -218,6 +215,7 @@ while True:
     pycom.rgbled(RGBOFF)
     wdt.feed()
     debug('Feed the watchdog.')
-    sleep(10)
+    # send ever 5 min
+    sleep(360)
 
 VAR.closers232()
