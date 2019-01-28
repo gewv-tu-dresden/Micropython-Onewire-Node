@@ -15,9 +15,15 @@ YELLOW = const(0x222200)
 
 # state of the system
 state = State()
-state.dev_eui = '004BA9B9A7199F28'
 state.app_eui = '70B3D57ED00109EF'
-state.app_key = 'B0B863F19717BB0BB5D73370BA08A252'
+
+# Node_1
+state.dev_eui = 'b2e40001a1c9e416'
+state.app_key = 'a46e0811cefd73d0918bfa657ba609f3'
+
+# Node_2
+# state.dev_eui = '71d2876cc82fb5c8'
+# state.app_key = 'f34cf462b6a23f3dd7b9bbbdf0f33a39'
 
 ###  Initialize ###
 

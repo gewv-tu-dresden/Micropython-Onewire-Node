@@ -24,7 +24,7 @@ class Webserver():
     def stop(self):
         print('Stop wlan and webserver.')
         self.mws.Stop()
-        self.wlan.deinit()
+        if self.wlan: self.wlan.deinit()
 
         if not self.mws.IsStarted():
             print('Webserver and wlan is stopped.')

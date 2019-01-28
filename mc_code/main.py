@@ -117,12 +117,14 @@ state.onewire_interface = VAR
 
 log("search... please wait... ;-)")
 VAR.getallid()
+debug("got all ids")
 VAR.update_state(state)
+debug("update state")
 
 clientno = VAR.checkdevices()
 log("find {}x DS19B20 Sensor and {}x DS1920 Sensor".format(VAR.ds19b20no, VAR.ds1920no))
 
-log("initialize cayennelpp")
+debug("initialize cayennelpp")
 lpp = CayenneLPP(size=51, sock=s)
 
 go = True
@@ -130,9 +132,9 @@ riegel = True
 turns = 0
 i = 0
 err_count = [0]*len(VAR.romstorage)
-DEBUG = 1
 
 while True:
+    debug("start new turn")
     pycom.rgbled(RGBCOLOR)
 
     # only every 30 reads a package should send
@@ -142,11 +144,8 @@ while True:
         i+=1
 
         if (VAR.ds19b20no == 0 and VAR.ds1920no == 0):
-            #wdt.init(1000000)
             wdt.feed()
-            #ggf. wdt.deinit() ?
             VAR.getallid()
-            #wdt.init(60000)
 
         log("Abfrage " + str(i) + ": ")
         VAR.converttemp()

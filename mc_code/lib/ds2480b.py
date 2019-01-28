@@ -62,7 +62,7 @@ class DS2480b(object):
 
     def interfacereset(self):
         """reset interface"""
-        print ("Err OneWireBus --> Reset Interface")
+        print("Err OneWireBus --> Reset Interface")
         self.interface.deinit()
         self.initrs232(1)
         self.portwrite(self.__RESET)
@@ -152,18 +152,20 @@ class DS2480b(object):
         self.commandmode()
         char = self.portwrite(self.__RESET)
         if char == self.__ACK:
-            self.resetflag = 0
-            return 1
+            self.resetflag = False
+            return True
         else:
-            print (hex(char))
-            self.resetflag = 1
+            print("Reset answer: " + hex(char))
+            self.resetflag = True
             self.datamode()
             self.readbit()
             self.interfacereset()
-            return 0
+            return False
 
     def resetsearch(self, clearrom=0):
         """reset the search state"""
+        if self.debug: print("Reset Interface for search.")
+
         self._lastdiscrepancy = 0
         self._lastdeviceflag = False
         self._lastfamilydiscrepancy = 0
@@ -194,20 +196,23 @@ class DS2480b(object):
         rom_byte_mask = 1
         search_result = 0
 
-        id_bit = False
-        cmp_id_bit = False
-        search_direction = False
+        id_bit = 0
+        cmp_id_bit = 0
+        search_direction = 0
 
         if self.debug:
             print ("search allgorithm")
+
         #if the last call was not the last one
         if not self._lastdeviceflag:
             if not self.reset():
                 self.resetsearch()
-                return False
+                return 0
+
             self.datamode()
             self.portwrite(self.__SEARCHROM)
             self.getchrrs232()
+
             while True:
                 #read a bit and its complement
                 id_bit = self.readbit()
@@ -263,12 +268,12 @@ class DS2480b(object):
                 self._lastdiscrepancy = last_zero
                 #check for last device
                 if self._lastdiscrepancy == 0:
-                    self._lastdeviceflag = True
-                search_result = True
+                    self._lastdeviceflag = 1
+                search_result = 1
         #if no device found then reset counters
         #so next 'search' will be like a first
         if search_result == 0 or self.newromno[0] == 0:
-            search_result = False
+            search_result = 0
         else:
             for i in range(0, 8):
             #newAddr[i] = self.newromno[i]
@@ -276,6 +281,7 @@ class DS2480b(object):
                     print (hex(self.newromno[i])+" ", end='')
             if self.debug:
                 print (" ")
+
         return search_result
 
     def getallid(self):
@@ -304,7 +310,7 @@ class DS2480b(object):
             while self.romstorage[i] != None:
                 print (str(i) +":   ")
                 for j in range(0, len(self.romstorage[i])):
-                    print (hex(self.romstorage[i][j]), end="")
+                    print(hex(self.romstorage[i][j]), end="")
                 i += 1
                 print (" ")
         return self.romstorage
@@ -369,13 +375,13 @@ class DS2480b(object):
                 self.portwrite(0xff)
                 sleep(0.005)
                 scratchpad[i] = self.getchrrs232()
-                if self.debug == 1:
+                if self.debug:
                     print (hex(scratchpad[i])+" ", end="")
             self.commandmode()
             self.reset()
             if self.crc8(scratchpad) != 0:
                 self.temperature = 9999.999
-                print ("Err CRC")
+                print("Err CRC")
                 return self.temperature
             #calculate temperatur
             #ds1820
@@ -402,8 +408,8 @@ class DS2480b(object):
         self.ds1920first = 0
         self.ds19b20no = 0
         self.ds19b20first = 0
-        if self.debug:
-            print ("get sensor type")
+        if self.debug: print("get sensor type")
+
         for i in range(0, len(self.romstorage)):
             devices += 1
             #check nesty value
@@ -411,8 +417,8 @@ class DS2480b(object):
                 break
             #mask of lsb
             kind = self.romstorage[i][0]
-            if self.debug:
-                print ("kind:" + hex(kind))
+            if self.debug: print("kind:" + hex(kind))
+
             if kind == 0x10:
                 if self.ds1920no == 0:
                     self.ds1920first = i
