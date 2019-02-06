@@ -1,3 +1,5 @@
 *.c
 node_modules
 .vscode
+env.json
+yarn-error.log

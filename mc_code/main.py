@@ -1,6 +1,5 @@
 from time import sleep
-from ds2480b import DS2480b, CRCError ,NoTempError
-from machine import Pin
+from ds2480b import DS2480b, CRCError, NoTempError
 from cayennelpp import CayenneLPP
 from button import Button
 import machine
@@ -28,14 +27,17 @@ UNKNOWN_ERROR = -280
 # myled = Pin('P2', mode=Pin.OUT) Remove this, becouse inbuild led is on P2 too
 case_button = Button('P8', longms=500)
 
+
 def debug(message):
     "print message if debug == 1"
     if DEBUG:
         print(message)
 
+
 def log(message):
     """message to terminal"""
     print(message)
+
 
 # helper functions
 def set_rgb_color(color):
@@ -44,22 +46,24 @@ def set_rgb_color(color):
     global RGBCOLOR
     RGBCOLOR = color
 
-#prüfen ob exclude.dat auf dem lopy4 vorhanden ist
+
+# check if exclude.dat is on lopy
 if 'exclude.dat' in os.listdir():
-    #laden der datei und in ein sep. Array speichern
-    f = open('exclude.dat',"r")
+    # load the file in a seperate Array
+    f = open('exclude.dat', "r")
     exclude = f.read()
     log('{} ausgeschlossene Sensoren'.format(exclude))
     exclude = exclude.split(';')
     f.close()
 else:
-    #erzeugen der datei
+    # make the file
     f = open('exclude.dat', 'w')
     exclude = ("-1;")
     f.write(exclude)
-    debug("init file 'exclude.dat'@"+exclude)
+    debug("init file 'exclude.dat'@" + exclude)
     exclude = exclude.split(";")
     f.close()
+
 
 def printid(array):
     "print sensor id in hex"
@@ -67,11 +71,13 @@ def printid(array):
     for i in range(0, len(array)):
         log(hex(array[i]))
 
+
 def senditems():
     "send temps"
     log("Send temps to app server.")
     debug("Payloadsize: {}".format(lpp.get_size()))
     lpp.send(reset_payload=True)
+
 
 # register callback for pins
 def toggle_measuring():
@@ -86,6 +92,7 @@ def toggle_measuring():
     else:
         log('Measuring off')
         set_rgb_color(NO_MEASURING_COLOR)
+
 
 def toggle_debug():
     global DEBUG
@@ -105,6 +112,7 @@ def toggle_debug():
     sleep(0.5)
     pycom.rgbled(RGBCOLOR)
 
+
 case_button.short = toggle_measuring
 case_button.long = toggle_debug
 
@@ -122,7 +130,8 @@ VAR.update_state(state)
 debug("update state")
 
 clientno = VAR.checkdevices()
-log("find {}x DS19B20 Sensor and {}x DS1920 Sensor".format(VAR.ds19b20no, VAR.ds1920no))
+log("find {}x DS19B20 Sensor and {}x DS1920 Sensor".format(
+    VAR.ds19b20no, VAR.ds1920no))
 
 debug("initialize cayennelpp")
 lpp = CayenneLPP(size=51, sock=s)
@@ -131,14 +140,14 @@ go = True
 riegel = True
 turns = 0
 i = 0
-err_count = [0]*len(VAR.romstorage)
+err_count = [0] * len(VAR.romstorage)
 
 while True:
     debug("start new turn")
     pycom.rgbled(RGBCOLOR)
 
     if MEASURE:
-        i+=1
+        i += 1
 
         if (VAR.ds19b20no == 0 and VAR.ds1920no == 0):
             wdt.feed()
@@ -149,7 +158,7 @@ while True:
 
         for j in range(0, VAR.ds19b20no + VAR.ds1920no):
             if (str(j) in exclude):
-                log("Fehlerhaften Sensor No.{} uebersprungen.".format(j+1))
+                log("Fehlerhaften Sensor No.{} uebersprungen.".format(j + 1))
                 continue
 
             try:
@@ -160,11 +169,13 @@ while True:
                 #Anpassung onewire Ring --> defekte Sensoren???
                 if VAR.resetflag:
                     err_count[j] = err_count[j] + 1
-                    log('Sensor No. {} --> Reset Err {}'.format(j+1,err_count[j]))
+                    log('Sensor No. {} --> Reset Err {}'.format(
+                        j + 1, err_count[j]))
                     if err_count[j] == 5:
-                        log("Err No.{} TempSensor: {}".format(j+1, rom_storage))
+                        log("Err No.{} TempSensor: {}".format(
+                            j + 1, rom_storage))
                         f = open("exclude.dat", "a+")
-                        f.write(str(j)+";")
+                        f.write(str(j) + ";")
                         f.close()
                         machine.reset()
                 else:
@@ -206,7 +217,6 @@ while True:
                     debug("Next exception overflow package size.")
                 else:
                     lpp.add_temperature(UNKNOWN_ERROR, j)
-
 
         # send the data after read all
         if lpp.get_size():
