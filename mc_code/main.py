@@ -1,20 +1,15 @@
 from time import sleep
 from ds2480b import DS2480b, CRCError, NoTempError
+from state import RF_MODES
 from cayennelpp import CayenneLPP
-from button import Button
 import machine
 import sys
 import pycom
+from utils import print_ids, debug, log
 
 VAR = None
 MEASURE = True
 DEBUG = False
-MEASURING_COLOR = 0x007f00
-NO_MEASURING_COLOR = 0x7f0000
-TOGGLE_MEASURING_COLOR = 0x7f7f00
-TOGGLE_DEBUG_COLOR = 0x007f7f
-RGBCOLOR = 0x007f00
-RGBOFF = 0x050505
 
 # error codes
 NO_TEMP_ERROR = -320
@@ -22,29 +17,6 @@ NO_TEMPRATUR_MEASURED = -310
 UART_ERROR = -300
 CRC_ERROR = -290
 UNKNOWN_ERROR = -280
-
-# config IO
-# myled = Pin('P2', mode=Pin.OUT) Remove this, becouse inbuild led is on P2 too
-case_button = Button('P8', longms=500)
-
-
-def debug(message):
-    "print message if debug == 1"
-    if DEBUG:
-        print(message)
-
-
-def log(message):
-    """message to terminal"""
-    print(message)
-
-
-# helper functions
-def set_rgb_color(color):
-    """change local led colour"""
-    pycom.rgbled(color)
-    global RGBCOLOR
-    RGBCOLOR = color
 
 
 # check if exclude.dat is on lopy
@@ -64,57 +36,14 @@ else:
     exclude = exclude.split(";")
     f.close()
 
-
-def printid(array):
-    "print sensor id in hex"
-    i = 0
-    for i in range(0, len(array)):
-        log(hex(array[i]))
-
-
 def senditems():
-    "send temps"
-    log("Send temps to app server.")
-    debug("Payloadsize: {}".format(lpp.get_size()))
-    lpp.send(reset_payload=True)
-
-
-# register callback for pins
-def toggle_measuring():
-    global MEASURE
-
-    pycom.rgbled(TOGGLE_MEASURING_COLOR)
-    MEASURE = not MEASURE
-
-    if MEASURE:
-        log('Measuring on')
-        set_rgb_color(MEASURING_COLOR)
+    if state.rf_mode == RF_MODES.LORA:
+        log("Send temps to app server.")
+        debug("Payloadsize: {}".format(lpp.get_size()))
+        lpp.send(reset_payload=True)
     else:
-        log('Measuring off')
-        set_rgb_color(NO_MEASURING_COLOR)
+        debug("Send no data, because wrong rf mode.")
 
-
-def toggle_debug():
-    global DEBUG
-    global VAR
-
-    pycom.rgbled(TOGGLE_DEBUG_COLOR)
-    DEBUG = not DEBUG
-
-    if VAR is not None:
-        VAR.debug = DEBUG
-
-    if DEBUG:
-        wser.start()
-    else:
-        wser.stop()
-
-    sleep(0.5)
-    pycom.rgbled(RGBCOLOR)
-
-
-case_button.short = toggle_measuring
-case_button.long = toggle_debug
 
 log('*******************Testprogramm DS2480B************************')
 VAR = DS2480b(debug=DEBUG)
@@ -136,15 +65,12 @@ log("find {}x DS19B20 Sensor and {}x DS1920 Sensor".format(
 debug("initialize cayennelpp")
 lpp = CayenneLPP(size=51, sock=s)
 
-go = True
-riegel = True
-turns = 0
 i = 0
 err_count = [0] * len(VAR.romstorage)
 
 while True:
     debug("start new turn")
-    pycom.rgbled(RGBCOLOR)
+    pycom.rgbled(state.rgb_color)
 
     if MEASURE:
         i += 1
@@ -222,7 +148,7 @@ while True:
         if lpp.get_size():
             senditems()
 
-    pycom.rgbled(RGBOFF)
+    state.set_rgb_off()
     wdt.feed()
     debug('Feed the watchdog.')
     # send ever 5 min
