@@ -2,6 +2,7 @@ from machine import Timer
 from machine import Pin
 from button import Button
 from pycom import rgbled
+from utils import log
 
 
 HISTORY_SIZE = 50
@@ -14,7 +15,7 @@ TOGGLE_DEBUG_COLOR = 0x007f7f
 class RF_MODES():
     NO_MODE = "NO_MODE"
     WLAN_AP = "WLAN_AP"
-    WLAN_CLIENT = "WLAN_CLIENT
+    WLAN_CLIENT = "WLAN_CLIENT"
     LORA = "LORA"
 
 class State():
@@ -35,12 +36,12 @@ class State():
         self.case_button = Button('P8', longms=500)
 
         # init pins for mode recognizion
-        self.bin_switch_1 = Pin('P10', mode=Pin.IN, pull=Pin.PULL_DOWN)
-        self.bin_switch_2 = Pin('P11', mode=Pin.IN, pull=Pin.PULL_DOWN)
-        self.bin_switch_3 = Pin('P12', mode=Pin.IN, pull=Pin.PULL_DOWN)
+        self.bin_switch_1 = Pin('P20', mode=Pin.IN, pull=Pin.PULL_UP)
+        self.bin_switch_2 = Pin('P21', mode=Pin.IN, pull=Pin.PULL_UP)
+        self.bin_switch_3 = Pin('P22', mode=Pin.IN, pull=Pin.PULL_UP)
 
         trigger = Pin.IRQ_FALLING | Pin.IRQ_RISING
-        self.update_node_mode()
+        self.update_node_mode(None)
         self.bin_switch_1.callback(trigger, self.update_node_mode)
         self.bin_switch_2.callback(trigger, self.update_node_mode)
         self.bin_switch_3.callback(trigger, self.update_node_mode)
@@ -53,28 +54,34 @@ class State():
         return None
 
     # helper functions
-    def set_rgb_color(color):
+    def set_rgb_color(self, color):
         """change local led colour"""
         self.rgb_color = color
         rgbled(color)
 
-    def update_node_mode(arg):
+    def set_rgb_off(self):
+        rgbled(RGBOFF)
+
+    def update_node_mode(self, arg):
         # pin 1 and 2          0 0        0 1          1 0        1 1
         # possible rf mode ["NO_MODE", "WLAN_AP", "WLAN_CLIENT", "LORA"]
         # measuring mode pin 3
-        switch_1 = self.bin_switch_1()
-        switch_2 = self.bin_switch_2()
-        switch_3 = self.bin_switch_3()
+        # pins has to be inverted to fit to the labels on the pcb
+        switch_1 = not self.bin_switch_1()
+        switch_2 = not self.bin_switch_2()
+        switch_3 = not self.bin_switch_3()
 
+        log("Switch Positions: 1:{} 2:{} 3:{}".format(switch_1, switch_2, switch_3))
         if switch_1 and switch_2:
             self.rf_mode = RF_MODES.LORA
-        else if switch_1 and not switch_2:
+        elif switch_1 and not switch_2:
             self.rf_mode = RF_MODES.WLAN_CLIENT
-        else if not switch_1 and switch_2:
+        elif not switch_1 and switch_2:
             self.rf_mode = RF_MODES.WLAN_AP
         else:
             self.rf_mode = RF_MODES.NO_MODE
 
+        log("Init Node Mode: {}".format(self.rf_mode))
         # self.measuring_mode = switch_3
 
     @app_key.setter
@@ -91,7 +98,7 @@ class State():
         sleep(0.5)
         rgbled(self.rgb_color)
 
-    def toggle_measuring():
+    def toggle_measuring(self):
         rgbled(TOGGLE_MEASURING_COLOR)
         self.measuring_mode = not self.measuring_mode
 

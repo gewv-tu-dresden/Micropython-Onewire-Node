@@ -9,6 +9,12 @@ from network import LoRa
 import socket
 from webserver import Webserver
 from state import State
+from utils import log
+
+# Initialize Uart
+uart = machine.UART(
+    0, 115200)  # disable these two lines if you don't want serial access
+os.dupterm(uart)
 
 # == Load environment == #
 if 'env.json' in os.listdir():
@@ -31,13 +37,6 @@ state.app_eui = '0000000000000000'
 # Node_1
 state.dev_eui = env['dev_eui']
 state.app_key = env['app_key']
-
-# == Initialize == #
-
-# Initialize Uart
-uart = machine.UART(
-    0, 115200)  # disable these two lines if you don't want serial access
-os.dupterm(uart)
 
 # LoRa in LORAWAN mode.
 lora = LoRa(mode=LoRa.LORAWAN, region=LoRa.EU868)

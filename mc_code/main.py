@@ -32,17 +32,17 @@ else:
     f = open('exclude.dat', 'w')
     exclude = ("-1;")
     f.write(exclude)
-    debug("init file 'exclude.dat'@" + exclude)
+    debug("init file 'exclude.dat'@" + exclude, state.debug_mode)
     exclude = exclude.split(";")
     f.close()
 
 def senditems():
     if state.rf_mode == RF_MODES.LORA:
         log("Send temps to app server.")
-        debug("Payloadsize: {}".format(lpp.get_size()))
+        debug("Payloadsize: {}".format(lpp.get_size()), state.debug_mode)
         lpp.send(reset_payload=True)
     else:
-        debug("Send no data, because wrong rf mode.")
+        debug("Send no data, because wrong rf mode.", state.debug_mode)
 
 
 log('*******************Testprogramm DS2480B************************')
@@ -54,22 +54,22 @@ state.onewire_interface = VAR
 
 log("search... please wait... ;-)")
 VAR.getallid()
-debug("got all ids")
+debug("got all ids", state.debug_mode)
 VAR.update_state(state)
-debug("update state")
+debug("update state", state.debug_mode)
 
 clientno = VAR.checkdevices()
 log("find {}x DS19B20 Sensor and {}x DS1920 Sensor".format(
     VAR.ds19b20no, VAR.ds1920no))
 
-debug("initialize cayennelpp")
+debug("initialize cayennelpp", state.debug_mode)
 lpp = CayenneLPP(size=51, sock=s)
 
 i = 0
 err_count = [0] * len(VAR.romstorage)
 
 while True:
-    debug("start new turn")
+    debug("start new turn", state.debug_mode)
     pycom.rgbled(state.rgb_color)
 
     if MEASURE:
@@ -110,11 +110,11 @@ while True:
 
                     # update the state
                     state.update_sensor(id, acq_temp)
-                    debug("{} {} 'C'".format(rom_storage, acq_temp))
+                    debug("{} {} 'C'".format(rom_storage, acq_temp), state.debug_mode)
 
                     if not lpp.is_within_size_limit(2):
                         senditems()
-                        debug("Next sensor overflow package size.")
+                        debug("Next sensor overflow package size.", state.debug_mode)
                     else:
                         if acq_temp >= -55.0 and acq_temp <= 125.0:
                             lpp.add_temperature(acq_temp, j)
@@ -123,13 +123,13 @@ while True:
             except CRCError:
                 if not lpp.is_within_size_limit(2):
                     senditems()
-                    debug("Next exception overflow package size.")
+                    debug("Next exception overflow package size.", state.debug_mode)
                 else:
                     lpp.add_temperature(CRC_ERROR, j)
             except NoTempError:
                 if not lpp.is_within_size_limit(2):
                     senditems()
-                    debug("Next exception overflow package size.")
+                    debug("Next exception overflow package size.", state.debug_mode)
                 else:
                     lpp.add_temperature(NO_TEMPRATUR_MEASURED, j)
 
@@ -140,7 +140,7 @@ while True:
 
                 if not lpp.is_within_size_limit(2):
                     senditems()
-                    debug("Next exception overflow package size.")
+                    debug("Next exception overflow package size.", state.debug_mode)
                 else:
                     lpp.add_temperature(UNKNOWN_ERROR, j)
 
@@ -150,8 +150,8 @@ while True:
 
     state.set_rgb_off()
     wdt.feed()
-    debug('Feed the watchdog.')
+    debug('Feed the watchdog.', state.debug_mode)
     # send ever 5 min
-    sleep(360)
+    sleep(10)
 
 VAR.closers232()
