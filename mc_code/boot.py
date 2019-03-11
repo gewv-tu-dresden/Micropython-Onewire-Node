@@ -10,6 +10,7 @@ import socket
 from webserver import Webserver
 from state import State
 from utils import log
+from sender import Sender
 
 # Initialize Uart
 uart = machine.UART(
@@ -87,5 +88,8 @@ else:
 s = socket.socket(socket.AF_LORA, socket.SOCK_RAW)
 s.setsockopt(socket.SOL_LORA, socket.SO_DR, 5)
 s.setblocking(True)
+
+# init Sender module
+sender = Sender(state=state, lora_socket=s)
 
 ######################
