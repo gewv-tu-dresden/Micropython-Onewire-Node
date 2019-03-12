@@ -6,8 +6,8 @@ import pycom
 import json
 from machine import WDT
 from network import LoRa
+from wlan import WLANAgent
 import socket
-from webserver import Webserver
 from state import State
 from utils import log
 from sender import Sender
@@ -31,8 +31,13 @@ else:
 RED = 0x220000
 YELLOW = 0x222200
 
+# Init Wifi Agent
+ap_config = env['wlan_ap']
+sta_config = env['wlan_sta']
+wlan_agent = WLANAgent(ap_config=ap_config, sta_config=sta_config)
+
 # state of the system
-state = State()
+state = State(wlan_agent=wlan_agent)
 state.app_eui = '0000000000000000'
 
 # Node_1
@@ -44,10 +49,6 @@ lora = LoRa(mode=LoRa.LORAWAN, region=LoRa.EU868)
 
 # Initialize watchdog
 wdt = WDT(timeout=1500000)
-
-# Initialize Webserver
-wser = Webserver(dev_state=state)
-wser.init_webserver()
 
 ####################
 

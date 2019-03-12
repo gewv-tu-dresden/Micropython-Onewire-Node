@@ -17,7 +17,6 @@ UART_ERROR = -300
 CRC_ERROR = -290
 UNKNOWN_ERROR = -280
 
-
 # check if exclude.dat is on lopy
 if 'exclude.dat' in os.listdir():
     # load the file in a seperate Array
@@ -79,7 +78,7 @@ while True:
                 acq_temp = VAR.acquiretemp(j)
                 id = "".join(map(str, rom_storage))
 
-                #Anpassung onewire Ring --> defekte Sensoren???
+                # Anpassung onewire Ring --> defekte Sensoren???
                 if VAR.resetflag:
                     err_count[j] = err_count[j] + 1
                     log('Sensor No. {} --> Reset Err {}'.format(
@@ -97,11 +96,13 @@ while True:
 
                     # update the state
                     state.update_sensor(id, acq_temp)
-                    debug("{} {} 'C'".format(rom_storage, acq_temp), state.debug_mode)
+                    debug("{} {} 'C'".format(rom_storage, acq_temp),
+                          state.debug_mode)
 
                     if not sender.is_within_size_limit(2):
                         sender.send_items()
-                        debug("Next sensor overflow package size.", state.debug_mode)
+                        debug("Next sensor overflow package size.",
+                              state.debug_mode)
                     else:
                         if acq_temp >= -55.0 and acq_temp <= 125.0:
                             sender.add_temperature(acq_temp, j)
@@ -110,13 +111,15 @@ while True:
             except CRCError:
                 if not sender.is_within_size_limit(2):
                     sender.send_items()
-                    debug("Next exception overflow package size.", state.debug_mode)
+                    debug("Next exception overflow package size.",
+                          state.debug_mode)
                 else:
                     sender.add_temperature(CRC_ERROR, j)
             except NoTempError:
                 if not sender.is_within_size_limit(2):
                     sender.send_items()
-                    debug("Next exception overflow package size.", state.debug_mode)
+                    debug("Next exception overflow package size.",
+                          state.debug_mode)
                 else:
                     sender.add_temperature(NO_TEMPRATUR_MEASURED, j)
 
@@ -127,7 +130,8 @@ while True:
 
                 if not sender.is_within_size_limit(2):
                     sender.send_items()
-                    debug("Next exception overflow package size.", state.debug_mode)
+                    debug("Next exception overflow package size.",
+                          state.debug_mode)
                 else:
                     sender.add_temperature(UNKNOWN_ERROR, j)
 

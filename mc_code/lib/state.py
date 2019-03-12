@@ -3,6 +3,7 @@ from machine import Pin
 from button import Button
 from pycom import rgbled
 from utils import log
+from webserver import Webserver
 
 
 HISTORY_SIZE = 50
@@ -20,7 +21,7 @@ class RF_MODES():
 
 class State():
 
-    def __init__(self):
+    def __init__(self, wlan_agent):
         self.dev_eui = None
         self.app_eui = None
         self.rf_mode = None
@@ -34,6 +35,11 @@ class State():
         self.sensors = {}
         self.rgb_color = 0x007f00
         self.case_button = Button('P8', longms=500)
+        self.wlan_agent = wlan_agent
+
+        # Initialize Webserver
+        self.web_server = Webserver(dev_state=self)
+        self.web_server.init_webserver()
 
         # init pins for mode recognizion
         self.bin_switch_1 = Pin('P20', mode=Pin.IN, pull=Pin.PULL_UP)
@@ -74,10 +80,16 @@ class State():
         log("Switch Positions: 1:{} 2:{} 3:{}".format(switch_1, switch_2, switch_3))
         if switch_1 and switch_2:
             self.rf_mode = RF_MODES.LORA
+            self.wlan_agent.stop()
+            self.web_server.stop()
         elif switch_1 and not switch_2:
             self.rf_mode = RF_MODES.WLAN_CLIENT
+            self.wlan_agent.activate_sta_mode()
+            self.web_server.start()
         elif not switch_1 and switch_2:
             self.rf_mode = RF_MODES.WLAN_AP
+            self.wlan_agent.activate_ap_mode()
+            self.web_server.start()
         else:
             self.rf_mode = RF_MODES.NO_MODE
 
