@@ -1,6 +1,7 @@
 import machine
 from network import WLAN
 from utils import log
+from time import time, sleep
 
 class WLANAgent:
 
@@ -12,6 +13,9 @@ class WLANAgent:
 
     def isActive(self):
         return self._wlan != None
+
+    def isconnected(self):
+        return self._wlan.isconnected()
 
     def activate_ap_mode(self, ssid, password):
         if self._ap_config is None:
@@ -58,6 +62,7 @@ class WLANAgent:
         self._wlan = WLAN(
             mode=WLAN.STA,
         )
+        self._wlan.ifconfig(config="dhcp")
         self.connect_to_ap()
 
     def connect_to_ap(self):
@@ -75,4 +80,14 @@ class WLANAgent:
             if ssid in self.networks:
                 password = self.networks[ssid]
                 self._wlan.connect(ssid, auth=(WLAN.WPA2, password))
-                log('Connect to wifi {}'.format(ssid))
+                break
+
+        now = time()
+        while not self._wlan.isconnected():
+            if (time()-now > 10):
+                raise Exception('Failed to connect to wlan {}. Timeout.'.format(self._wlan.ssid()))
+            sleep(0.3)
+
+        (ip, subnet_mask, gateway, DNS_server) = self._wlan.ifconfig()
+        log('Connect to wifi {}'.format(self._wlan.ssid()))
+        log('IP: {}'.format(ip))

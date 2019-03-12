@@ -91,6 +91,7 @@ s.setsockopt(socket.SOL_LORA, socket.SO_DR, 5)
 s.setblocking(True)
 
 # init Sender module
-sender = Sender(state=state, lora_socket=s)
+http_config = env.get('http_interface')
+sender = Sender(state=state, lora_socket=s, http_config=http_config, wlan_agent=wlan_agent)
 
 ######################
