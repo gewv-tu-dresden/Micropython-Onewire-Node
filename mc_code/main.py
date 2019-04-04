@@ -92,7 +92,6 @@ while True:
                         machine.reset()
                 else:
                     err_count[j] = 0
-                    sender.add_temperature(acq_temp, j)
 
                     # update the state
                     state.update_sensor(id, acq_temp)
@@ -105,7 +104,7 @@ while True:
                               state.debug_mode)
                     else:
                         if acq_temp >= -55.0 and acq_temp <= 125.0:
-                            sender.add_temperature(acq_temp, j)
+                            sender.add_temperature(acq_temp, j, true)
 
             # error codes added to an second channel
             except CRCError:
@@ -114,14 +113,14 @@ while True:
                     debug("Next exception overflow package size.",
                           state.debug_mode)
                 else:
-                    sender.add_temperature(CRC_ERROR, j)
+                    sender.add_temperature(CRC_ERROR, j, true)
             except NoTempError:
                 if not sender.is_within_size_limit(2):
                     sender.send_items()
                     debug("Next exception overflow package size.",
                           state.debug_mode)
                 else:
-                    sender.add_temperature(NO_TEMPRATUR_MEASURED, j)
+                    sender.add_temperature(NO_TEMPRATUR_MEASURED, j, true)
 
             except Exception as e:
                 log('--- Unknown Exception ---')
@@ -133,7 +132,7 @@ while True:
                     debug("Next exception overflow package size.",
                           state.debug_mode)
                 else:
-                    sender.add_temperature(UNKNOWN_ERROR, j)
+                    sender.add_temperature(UNKNOWN_ERROR, j, true)
 
         # send the data after read all
         if sender.get_size():

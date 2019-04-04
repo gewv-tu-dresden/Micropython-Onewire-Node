@@ -66,28 +66,34 @@ class WLANAgent:
         self.connect_to_ap()
 
     def connect_to_ap(self):
-        if len(list(self.networks.items())) < 1:
-            raise Exception("Need networks to connect to Wifi AP.")
-
-        if self._wlan.mode() != WLAN.STA:
-            raise Exception("Must in Station Mode to connect to Wifi AP.")
-
-        existing_networks = self._wlan.scan()
-        log('Found {}. existing wlan networks.'.format(len(existing_networks)))
-
-        for network in existing_networks:
-            (ssid, bssid, sec, channel, rssi) = network
-            if ssid in self.networks:
-                password = self.networks[ssid]
-                self._wlan.connect(ssid, auth=(WLAN.WPA2, password))
-                break
-
-        now = time()
         while not self._wlan.isconnected():
-            if (time()-now > 10):
-                raise Exception('Failed to connect to wlan {}. Timeout.'.format(self._wlan.ssid()))
-            sleep(0.3)
+            try:
+                if len(list(self.networks.items())) < 1:
+                    raise Exception("Need networks to connect to Wifi AP.")
 
-        (ip, subnet_mask, gateway, DNS_server) = self._wlan.ifconfig()
-        log('Connect to wifi {}'.format(self._wlan.ssid()))
-        log('IP: {}'.format(ip))
+                if self._wlan.mode() != WLAN.STA:
+                    raise Exception("Must in Station Mode to connect to Wifi AP.")
+
+                existing_networks = self._wlan.scan()
+                log('Found {}. existing wlan networks.'.format(len(existing_networks)))
+
+                for network in existing_networks:
+                    (ssid, bssid, sec, channel, rssi) = network
+                    log('Try to connect to network {}'.format(ssid))
+                    if ssid in self.networks:
+                        password = self.networks[ssid]
+                        self._wlan.connect(ssid, auth=(WLAN.WPA2, password))
+                        break
+
+                now = time()
+                while not self._wlan.isconnected():
+                    if (time()-now > 10):
+                        raise Exception('Failed to connect to wlan {}. Timeout.'.format(self._wlan.ssid()))
+                    sleep(0.3)
+
+                (ip, subnet_mask, gateway, DNS_server) = self._wlan.ifconfig()
+                log('Connect to wifi {}'.format(self._wlan.ssid()))
+                log('IP: {}'.format(ip))
+            except Exception as err:
+                log(err)
+                sleep(2)

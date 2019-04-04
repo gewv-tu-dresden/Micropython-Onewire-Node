@@ -38,11 +38,11 @@ wlan_agent = WLANAgent(ap_config=ap_config, sta_config=sta_config)
 
 # state of the system
 state = State(wlan_agent=wlan_agent)
-state.app_eui = '0000000000000000'
 
 # Node_1
 state.dev_eui = env['dev_eui']
 state.app_key = env['app_key']
+state.app_eui = env['app_eui']
 
 # LoRa in LORAWAN mode.
 lora = LoRa(mode=LoRa.LORAWAN, region=LoRa.EU868)
@@ -92,6 +92,6 @@ s.setblocking(True)
 
 # init Sender module
 http_config = env.get('http_interface')
-sender = Sender(state=state, lora_socket=s, http_config=http_config, wlan_agent=wlan_agent)
+sender = Sender(state=state, lora_socket=s, http_config=http_config, wlan_agent=wlan_agent, default_unit="°C")
 
 ######################
