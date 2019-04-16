@@ -10,9 +10,9 @@ class Sender:
         self._state = state
         self._lora_socket = lora_socket
         self._lora_buffer = CayenneLPP(size=51, sock=self._lora_socket)
-        self._http_buffer = self.build_basic_http_payload()
         self._http_config = http_config
         self._default_unit = default_unit
+        self._http_buffer = self.build_basic_http_payload()
 
         if self._http_config is not None:
             self._http_url = self._http_config['url']
@@ -59,7 +59,7 @@ class Sender:
             debug("Send no data, because wrong rf mode.", self._state.debug_mode)
 
 
-    def add_temperature(self, value, channel, is_major_unit):
+    def add_temperature(self, value, channel, unit=None):
         if self._state.rf_mode == RF_MODES.LORA:
             self._lora_buffer.add_temperature(value, channel)
         elif self._state.rf_mode == RF_MODES.WLAN_AP or self._state.rf_mode == RF_MODES.WLAN_CLIENT:
@@ -69,10 +69,10 @@ class Sender:
             }
 
             # set unit if temp values are not in the majority
-            if(!is_major_unit):
-                payload["unit"] = "°C"
+            if unit is not None:
+                payload['unit'] = unit
 
-            self._http_buffer['datapoints'].append()
+            self._http_buffer['datapoints'].append(payload)
         else:
             debug("Not implemented rf mode.", self._state.debug_mode)
 
