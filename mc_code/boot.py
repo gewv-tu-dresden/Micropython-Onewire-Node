@@ -9,20 +9,20 @@ from network import LoRa
 from wlan import WLANAgent
 import socket
 from state import State
-from utils import log
 from sender import Sender
 
 # Initialize Uart
 uart = machine.UART(
-    0, 115200)  # disable these two lines if you don't want serial access
+    0, 115200
+)  # disable these two lines if you don't want serial access
 os.dupterm(uart)
 
 # == Load environment == #
-if 'env.json' in os.listdir():
+if "env.json" in os.listdir():
     # load the file in a seperate Array
-    f = open('env.json', 'r')
+    f = open("env.json", "r")
     env = json.load(f)
-    print('Env Variables: \n {}'.format(env))
+    print("Env Variables: \n {}".format(env))
     f.close()
 else:
     raise Exception("No environment file.")
@@ -32,17 +32,17 @@ RED = 0x220000
 YELLOW = 0x222200
 
 # Init Wifi Agent
-ap_config = env['wlan_ap']
-sta_config = env['wlan_sta']
+ap_config = env["wlan_ap"]
+sta_config = env["wlan_sta"]
 wlan_agent = WLANAgent(ap_config=ap_config, sta_config=sta_config)
 
 # state of the system
 state = State(wlan_agent=wlan_agent)
 
 # Node_1
-state.dev_eui = env['dev_eui']
-state.app_key = env['app_key']
-state.app_eui = env['app_eui']
+state.dev_eui = env["dev_eui"]
+state.app_key = env["app_key"]
+state.app_eui = env["app_eui"]
 
 # LoRa in LORAWAN mode.
 lora = LoRa(mode=LoRa.LORAWAN, region=LoRa.EU868)
@@ -73,16 +73,15 @@ else:
     app_key = binascii.unhexlify(state._app_key)
 
     # join a network using OTAA (Over the Air Activation)
-    lora.join(
-        activation=LoRa.OTAA, auth=(dev_eui, app_eui, app_key), timeout=0)
+    lora.join(activation=LoRa.OTAA, auth=(dev_eui, app_eui, app_key), timeout=0)
     i = 0
     # wait until the module has joined the network
     while not lora.has_joined():
         time.sleep(2.5)
         i = i + 2.5
-        print('Not yet joined after ' + str(i) + "s ... ")
+        print("Not yet joined after " + str(i) + "s ... ")
 
-    print('Joined.')
+    print("Joined.")
     pycom.rgbled(YELLOW)
 
 # create a LoRa socket
@@ -91,7 +90,13 @@ s.setsockopt(socket.SOL_LORA, socket.SO_DR, 5)
 s.setblocking(True)
 
 # init Sender module
-http_config = env.get('http_interface')
-sender = Sender(state=state, lora_socket=s, http_config=http_config, wlan_agent=wlan_agent, default_unit="°C")
+http_config = env.get("http_interface")
+sender = Sender(
+    state=state,
+    lora_socket=s,
+    http_config=http_config,
+    wlan_agent=wlan_agent,
+    default_unit="°C",
+)
 
 ######################
