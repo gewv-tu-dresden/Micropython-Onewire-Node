@@ -18,19 +18,19 @@ CRC_ERROR = -290
 UNKNOWN_ERROR = -280
 
 # check if exclude.dat is on lopy
-if "exclude.dat" in os.listdir():
+if "exclude.txt" in os.listdir():
     # load the file in a seperate Array
-    f = open("exclude.dat", "r")
+    f = open("exclude.txt", "r")
     exclude = f.read()
     log("{} ausgeschlossene Sensoren".format(exclude))
     exclude = exclude.split(";")
     f.close()
 else:
     # make the file
-    f = open("exclude.dat", "w")
+    f = open("exclude.txt", "w")
     exclude = "-1;"
     f.write(exclude)
-    debug("init file 'exclude.dat'@" + exclude, state.debug_mode)
+    debug("init file 'exclude.txt'@" + exclude, state.debug_mode)
     exclude = exclude.split(";")
     f.close()
 
@@ -83,7 +83,7 @@ while True:
                     log("Sensor No. {} --> Reset Err {}".format(j + 1, err_count[j]))
                     if err_count[j] == 5:
                         log("Err No.{} TempSensor: {}".format(j + 1, rom_storage))
-                        f = open("exclude.dat", "a+")
+                        f = open("exclude.txt", "a+")
                         f.write(str(j) + ";")
                         f.close()
                         machine.reset()
