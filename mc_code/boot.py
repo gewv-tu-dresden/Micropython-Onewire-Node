@@ -46,6 +46,7 @@ state.app_eui = env["app_eui"]
 
 # LoRa in LORAWAN mode.
 lora = LoRa(mode=LoRa.LORAWAN, region=LoRa.EU868)
+lora.nvram_restore()
 
 # Initialize watchdog
 wdt = WDT(timeout=1500000)
@@ -56,14 +57,9 @@ pycom.heartbeat(False)
 pycom.rgbled(RED)
 
 # == Configure Lora == #
-if machine.reset_cause() == machine.WDT_RESET:
-    print("Watchdog rescued us.")
+print("Resetcause {}".format(machine.reset_cause()))
 
-if machine.reset_cause() == machine.DEEPSLEEP_RESET:
-    print("Woke up from deepsleep.")
-    lora.nvram_restore()
-
-if machine.reset_cause() == machine.DEEPSLEEP_RESET and lora.has_joined():
+if lora.has_joined():
     print("Skipping joining.")
 else:
     print("Try to join TTN")
