@@ -12,7 +12,7 @@ MEASURE = True
 DEBUG = False
 
 # Shutdown pin
-SHUTDOWN = 'P23'
+SHUTDOWN = 'P8'
 
 # error codes
 NO_TEMP_ERROR = -320
@@ -141,9 +141,13 @@ if MEASURE:
 state.set_rgb_off()
 
 # init deepsleep
-lora.nvram_save()
-print("Going to deepsleep")
-shutdown.value(1)
 
-# if no watchdog circuit installed, we use the build in deep deepsleep
-machine.deepsleep(60000)
+if (state.deepsleep):
+    lora.nvram_save()
+    print("Going to deepsleep")
+    shutdown.value(1)
+
+    # if no watchdog circuit installed, we use the build in deep deepsleep
+    machine.deepsleep(60000)
+else:
+    sleep(60)

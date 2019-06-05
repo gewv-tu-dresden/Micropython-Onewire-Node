@@ -36,6 +36,9 @@ class Sender:
             debug("Payloadsize: {}".format(self._lora_buffer.get_size()), self._state.debug_mode)
             self._lora_buffer.send(reset_payload=True)
         elif self._http_config is not None and (self._state.rf_mode == RF_MODES.WLAN_AP or self._state.rf_mode == RF_MODES.WLAN_CLIENT):
+            if (self._http_url is None):
+                raise ValueError("Cant make a request without a target url.")
+
             try:
                 log("Send temps to http server {}.".format(self._http_url))
                 res = post(self._http_url, json=self._http_buffer)

@@ -1,6 +1,5 @@
 from machine import Timer
 from machine import Pin
-from button import Button
 from pycom import rgbled
 from utils import log
 from webserver import Webserver
@@ -30,11 +29,12 @@ class State():
         self._app_key = None
         self.onewire_interface = None
         self.web_server = None
+        self.deepsleep = True
         self.chrono = Timer.Chrono()
         self.chrono.start()
         self.sensors = {}
         self.rgb_color = 0x007f00
-        self.case_button = Button('P8', longms=500)
+        #self.case_button = Button('P8', longms=500)
         self.wlan_agent = wlan_agent
 
         # Initialize Webserver
@@ -52,8 +52,8 @@ class State():
         self.bin_switch_2.callback(trigger, self.update_node_mode)
         self.bin_switch_3.callback(trigger, self.update_node_mode)
 
-        self.case_button.short = self.toggle_measuring
-        self.case_button.long = self.toggle_debug
+        #self.case_button.short = self.toggle_measuring
+        #self.case_button.long = self.toggle_debug
 
     @property
     def app_key(self):

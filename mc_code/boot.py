@@ -12,9 +12,8 @@ from state import State
 from sender import Sender
 
 # Initialize Uart
-uart = machine.UART(
-    0, 115200
-)  # disable these two lines if you don't want serial access
+uart = machine.UART(0, 115200)
+# disable these two lines if you don't want serial access
 os.dupterm(uart)
 
 # == Load environment == #
@@ -43,6 +42,7 @@ state = State(wlan_agent=wlan_agent)
 state.dev_eui = env["dev_eui"]
 state.app_key = env["app_key"]
 state.app_eui = env["app_eui"]
+state.deepsleep = env.get('deepsleep', True)
 
 # LoRa in LORAWAN mode.
 lora = LoRa(mode=LoRa.LORAWAN, region=LoRa.EU868)
