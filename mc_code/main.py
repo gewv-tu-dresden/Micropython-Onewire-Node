@@ -65,89 +65,90 @@ err_count = [0] * len(VAR.romstorage)
 debug("start measurement", state.debug_mode)
 pycom.rgbled(state.rgb_color)
 
-if MEASURE:
-    i += 1
+while True:
+    if MEASURE:
+        i += 1
 
-    if VAR.ds19b20no == 0 and VAR.ds1920no == 0:
-        wdt.feed()
-        VAR.getallid()
+        if VAR.ds19b20no == 0 and VAR.ds1920no == 0:
+            wdt.feed()
+            VAR.getallid()
 
-    log("Abfrage " + str(i) + ": ")
-    VAR.converttemp()
+        log("Abfrage " + str(i) + ": ")
+        VAR.converttemp()
 
-    for j in range(0, VAR.ds19b20no + VAR.ds1920no):
-        if str(j) in exclude:
-            log("Fehlerhaften Sensor No.{} uebersprungen.".format(j + 1))
-            continue
+        for j in range(0, VAR.ds19b20no + VAR.ds1920no):
+            if str(j) in exclude:
+                log("Fehlerhaften Sensor No.{} uebersprungen.".format(j + 1))
+                continue
 
-        try:
-            rom_storage = VAR.romstorage[j]
-            acq_temp = VAR.acquiretemp(j)
-            id = "".join(map(str, rom_storage))
+            try:
+                rom_storage = VAR.romstorage[j]
+                acq_temp = VAR.acquiretemp(j)
+                id = "".join(map(str, rom_storage))
 
-            # Anpassung onewire Ring --> defekte Sensoren???
-            if VAR.resetflag:
-                err_count[j] = err_count[j] + 1
-                log("Sensor No. {} --> Reset Err {}".format(j + 1, err_count[j]))
-                if err_count[j] == 5:
-                    log("Err No.{} TempSensor: {}".format(j + 1, rom_storage))
-                    f = open("exclude.txt", "a+")
-                    f.write(str(j) + ";")
-                    f.close()
-                    machine.reset()
-            else:
-                err_count[j] = 0
+                # Anpassung onewire Ring --> defekte Sensoren???
+                if VAR.resetflag:
+                    err_count[j] = err_count[j] + 1
+                    log("Sensor No. {} --> Reset Err {}".format(j + 1, err_count[j]))
+                    if err_count[j] == 5:
+                        log("Err No.{} TempSensor: {}".format(j + 1, rom_storage))
+                        f = open("exclude.txt", "a+")
+                        f.write(str(j) + ";")
+                        f.close()
+                        machine.reset()
+                else:
+                    err_count[j] = 0
 
-                # update the state
-                state.update_sensor(id, acq_temp)
-                debug("{} {} 'C'".format(rom_storage, acq_temp), state.debug_mode)
+                    # update the state
+                    state.update_sensor(id, acq_temp)
+                    debug("{} {} 'C'".format(rom_storage, acq_temp), state.debug_mode)
+
+                    if not sender.is_within_size_limit(2):
+                        sender.send_items()
+                        debug("Next sensor overflow package size.", state.debug_mode)
+                    else:
+                        if acq_temp >= -55.0 and acq_temp <= 125.0:
+                            sender.add_temperature(acq_temp, j)
+
+            # error codes added to an second channel
+            except CRCError:
+                if not sender.is_within_size_limit(2):
+                    sender.send_items()
+                    debug("Next exception overflow package size.", state.debug_mode)
+                else:
+                    sender.add_temperature(CRC_ERROR, j)
+            except NoTempError:
+                if not sender.is_within_size_limit(2):
+                    sender.send_items()
+                    debug("Next exception overflow package size.", state.debug_mode)
+                else:
+                    sender.add_temperature(NO_TEMPRATUR_MEASURED, j)
+
+            except Exception as e:
+                log("--- Unknown Exception ---")
+                sys.print_exception(e)
+                log("----------------------------")
 
                 if not sender.is_within_size_limit(2):
                     sender.send_items()
-                    debug("Next sensor overflow package size.", state.debug_mode)
+                    debug("Next exception overflow package size.", state.debug_mode)
                 else:
-                    if acq_temp >= -55.0 and acq_temp <= 125.0:
-                        sender.add_temperature(acq_temp, j)
+                    sender.add_temperature(UNKNOWN_ERROR, j)
 
-        # error codes added to an second channel
-        except CRCError:
-            if not sender.is_within_size_limit(2):
-                sender.send_items()
-                debug("Next exception overflow package size.", state.debug_mode)
-            else:
-                sender.add_temperature(CRC_ERROR, j)
-        except NoTempError:
-            if not sender.is_within_size_limit(2):
-                sender.send_items()
-                debug("Next exception overflow package size.", state.debug_mode)
-            else:
-                sender.add_temperature(NO_TEMPRATUR_MEASURED, j)
+        # send the data after read all
+        if sender.get_size():
+            sender.send_items()
 
-        except Exception as e:
-            log("--- Unknown Exception ---")
-            sys.print_exception(e)
-            log("----------------------------")
+    state.set_rgb_off()
 
-            if not sender.is_within_size_limit(2):
-                sender.send_items()
-                debug("Next exception overflow package size.", state.debug_mode)
-            else:
-                sender.add_temperature(UNKNOWN_ERROR, j)
+    # init deepsleep
 
-    # send the data after read all
-    if sender.get_size():
-        sender.send_items()
+    if (state.deepsleep):
+        lora.nvram_save()
+        print("Going to deepsleep")
+        shutdown.value(1)
 
-state.set_rgb_off()
-
-# init deepsleep
-
-if (state.deepsleep):
-    lora.nvram_save()
-    print("Going to deepsleep")
-    shutdown.value(1)
-
-    # if no watchdog circuit installed, we use the build in deep deepsleep
-    machine.deepsleep(60000)
-else:
-    sleep(60)
+        # if no watchdog circuit installed, we use the build in deep deepsleep
+        machine.deepsleep(60000)
+    else:
+        sleep(60)

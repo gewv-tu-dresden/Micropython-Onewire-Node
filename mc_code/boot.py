@@ -8,7 +8,7 @@ from machine import WDT
 from network import LoRa
 from wlan import WLANAgent
 import socket
-from state import State
+from state import State, RF_MODES
 from sender import Sender
 
 # Initialize Uart
@@ -59,7 +59,7 @@ pycom.rgbled(RED)
 # == Configure Lora == #
 print("Resetcause {}".format(machine.reset_cause()))
 
-if lora.has_joined():
+if state.rf_mode in [RF_MODES.WLAN_AP, RF_MODES.WLAN_CLIENT, RF_MODES.NO_MODE] or lora.has_joined():
     print("Skipping joining.")
 else:
     print("Try to join TTN")
