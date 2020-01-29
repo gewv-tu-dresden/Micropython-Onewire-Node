@@ -10,8 +10,8 @@
     "minify": "node_modules/.bin/html-minifier --input-dir www_unpacked --output-dir mc_code/www --file-ext html -c html_minify.json && node_modules/.bin/postcss www_unpacked/css/*.css --dir mc_code/www/css"
   },
   "devDependencies": {
-    "cssnano": "^4.0.5",
-    "html-minifier": "^3.5.19",
-    "postcss-cli": "^6.0.0"
+    "cssnano": "^4.1.10",
+    "html-minifier": "^4.0.0",
+    "postcss-cli": "^7.1.0"
   }
 }
